@@ -11,6 +11,7 @@
 		const gameSnap = await getDoc(gameRef);
 
 		if (!gameSnap.exists()) {
+			console.log(gameSnap);
 			alert('No game found with the given code.');
 			return;
 		}
@@ -23,7 +24,7 @@
 
 		if (playerCount < playerCap) {
 			await addDoc(playersRef, { nickName: $nickName });
-			goto(`/${code}`);
+			goto(`/games/${code}`);
 		} else {
 			alert('This game is already full.');
 		}
@@ -35,7 +36,7 @@
 	}
 </script>
 
-<div class="logo">
+<div id="logo">
 	<img src="/darts.png" alt="dartsapp logo" />
 	<h1>dartsapp</h1>
 </div>
@@ -45,7 +46,7 @@
 <button type="button" disabled={!$nickName} on:click={createGame}>Create Game</button>
 
 <style>
-	.logo {
+	#logo {
 		display: flex;
 		flex-direction: row;
 		align-items: center;

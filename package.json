@@ -22,6 +22,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"firebase": "^9.22.0"
+		"firebase": "^9.22.0",
+		"peerjs": "^1.4.7"
 	}
 }

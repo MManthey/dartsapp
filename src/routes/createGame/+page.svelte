@@ -20,7 +20,7 @@
 		const playerRef = collection(gameRef, 'players');
 		await addDoc(playerRef, { nickName: $nickName });
 
-		goto(`/${gameRef.id}`);
+		goto(`/games/${gameRef.id}`);
 	}
 </script>
 
