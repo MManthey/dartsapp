@@ -11,4 +11,7 @@
 		max-width: 1024px;
 		margin: auto;
 	}
+	body > * {
+		max-width: 300px;
+	}
 </style>

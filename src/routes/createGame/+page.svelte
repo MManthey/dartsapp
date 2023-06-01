@@ -1,8 +1,7 @@
 <script>
 	import { goto } from '$app/navigation';
-	import { collection, addDoc } from 'firebase/firestore';
-	import { nickName } from '$lib/store.js';
-	import { db } from '$lib/firebase.js';
+	import { nickName } from '$lib/stores.js';
+	import { createGame, createPlayer } from '$lib/firebase.js';
 
 	let playerCap = 1;
 	let isOnline = false;
@@ -10,17 +9,14 @@
 	let outMode = 'double';
 
 	async function createAndJoinGame() {
-		const gameRef = await addDoc(collection(db, 'games'), {
-			playerCap,
-			isOnline,
-			gameMode,
-			outMode
-		});
-
-		const playerRef = collection(gameRef, 'players');
-		await addDoc(playerRef, { nickName: $nickName });
-
-		goto(`/games/${gameRef.id}`);
+		const gameRef = await createGame({playerCap, isOnline, gameMode, outMode});
+		const code = gameRef.id;
+		try {
+			await createPlayer(code, $nickName);
+			goto(`/games/${code}`);
+		} catch (error) {
+			console.error(error);
+		}
 	}
 </script>
 

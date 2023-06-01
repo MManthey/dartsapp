@@ -1,36 +1,30 @@
 <script>
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { doc, getDoc, collection, addDoc, getDocs } from 'firebase/firestore';
-	import { nickName } from '$lib/store.js';
-	import { db } from '$lib/firebase.js';
+	import { nickName } from '$lib/stores.js';
+	import { createPlayer } from '$lib/firebase.js';
 
 	let code = '';
 
-	async function joinGame() {
-		const gameRef = doc(db, 'games', code);
-		const gameSnap = await getDoc(gameRef);
-
-		if (!gameSnap.exists()) {
-			console.log(gameSnap);
-			alert('No game found with the given code.');
-			return;
+	onMount(async () => {
+		try {
+			await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+		} catch (error) {
+			// TODO: Communicate to user that videochat wont work within games
+			console.error('Permissions not granted', error);
 		}
+	});
 
-		const gameData = gameSnap.data();
-		const playerCap = gameData.playerCap;
-		const playersRef = collection(gameRef, 'players');
-		const playersSnap = await getDocs(playersRef);
-		const playerCount = playersSnap.size;
-
-		if (playerCount < playerCap) {
-			await addDoc(playersRef, { nickName: $nickName });
+	async function joinGame() {
+		try {
+			await createPlayer(code, $nickName);
 			goto(`/games/${code}`);
-		} else {
-			alert('This game is already full.');
+		} catch (error) {
+			// TODO: Display the error to the suer
+			console.error(error);
 		}
 	}
 
-	// This function is called when the 'Create Game' button is clicked.
 	function createGame() {
 		goto('/createGame');
 	}
