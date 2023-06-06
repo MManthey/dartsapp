@@ -1,6 +1,6 @@
 <script>
 	import { goto } from '$app/navigation';
-	import { nickName } from '$lib/stores.js';
+	import { player, players } from '$lib/stores.js';
 	import { createGame, createPlayer } from '$lib/firebase.js';
 
 	let playerCap = 1;
@@ -9,10 +9,11 @@
 	let outMode = 'double';
 
 	async function createAndJoinGame() {
-		const gameRef = await createGame({playerCap, isOnline, gameMode, outMode});
+		const gameRef = await createGame({ playerCap, isOnline, gameMode, outMode });
 		const code = gameRef.id;
 		try {
-			await createPlayer(code, $nickName);
+			const playerRef = await createPlayer(code, $player.name);
+			player.update((player) => ({ id: playerRef.id, ...player }));
 			goto(`/games/${code}`);
 		} catch (error) {
 			console.error(error);
@@ -56,7 +57,9 @@
 		width: 100%;
 	}
 
-	.input, select, button {
+	.input,
+	select,
+	button {
 		margin: 10px 0px;
 		width: 100%;
 	}

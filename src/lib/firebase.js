@@ -39,10 +39,10 @@ export async function createGame(settings) {
 /**
  * 
  * @param {*} code 
- * @param {*} nickName 
+ * @param {*} name 
  * @returns 
  */
-export async function createPlayer(code, nickName) {
+export async function createPlayer(code, name) {
 	const gameRef = doc(db, 'games', code);
 	const gameSnap = await getDoc(gameRef);
 
@@ -60,7 +60,7 @@ export async function createPlayer(code, nickName) {
 		throw new Error(`Game#${code} is already full.`);
 	} 
 
-	const playerRef = await addDoc(playersRef, { nickName });
+	const playerRef = await addDoc(playersRef, { name });
 	return playerRef;
 }
 
