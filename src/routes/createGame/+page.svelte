@@ -1,6 +1,6 @@
 <script>
 	import { goto } from '$app/navigation';
-	import { player, players } from '$lib/stores.js';
+	import { player } from '$lib/stores.js';
 	import { createGame, createPlayer } from '$lib/firebase.js';
 
 	let playerCap = 1;

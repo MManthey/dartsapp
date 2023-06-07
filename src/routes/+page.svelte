@@ -1,20 +1,10 @@
 <script>
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { player, players } from '$lib/stores.js';
+	import { player } from '$lib/stores.js';
 	import { createPlayer } from '$lib/firebase.js';
 
 	let code = '';
 	let name = '';
-
-	onMount(async () => {
-		try {
-			await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-		} catch (error) {
-			// TODO: Communicate to user that videochat wont work within games
-			console.error('Permissions not granted', error);
-		}
-	});
 
 	async function joinGame() {
 		try {
