@@ -1,9 +1,19 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, addDoc, getDoc, getDocs, collection } from 'firebase/firestore';
+import { getAuth, signInAnonymously } from 'firebase/auth';
+import {
+	getFirestore,
+	doc,
+	addDoc,
+	setDoc,
+	getDoc,
+	getDocs,
+	deleteDoc,
+	collection,
+	getCountFromServer
+} from 'firebase/firestore';
+import { get } from 'svelte/store';
+import { gameID, userID, userName } from '$lib/stores.js';
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
 	apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
 	authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -15,53 +25,129 @@ const firebaseConfig = {
 	measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-/**
- * 
- */
 const app = initializeApp(firebaseConfig);
 
-/**
- * 
- */
+const auth = getAuth();
+
 const db = getFirestore(app);
 
-/**
- * 
- * @param {*} settings 
- * @returns 
- */
-export async function createGame(settings) {
-	const gamesRef = collection(db, 'games');
-	const gameRef = await addDoc(gamesRef, { ...settings });
-	return gameRef;
+function gameDocRef() {
+	const ref = doc(db, 'games', get(gameID));
+	return ref;
 }
 
-/**
- * 
- * @param {*} code 
- * @param {*} name 
- * @returns 
- */
-export async function createPlayer(code, name) {
-	const gameRef = doc(db, 'games', code);
-	const gameSnap = await getDoc(gameRef);
+export function playersCollRef() {
+	const ref = collection(gameDocRef(), 'players');
+	return ref;
+}
+
+function playerDocRef(id = get(userID)) {
+	const ref = doc(playersCollRef(), id);
+	return ref;
+}
+
+export function callDocRef(callID) {
+	const ref = doc(gameDocRef(), 'calls', callID);
+	return ref;
+}
+
+async function deleteCollection(collectionRef) {
+	const querySnapshot = await getDocs(collectionRef);
+
+	for (const docSnapshot of querySnapshot.docs) {
+		await deleteDoc(doc(collectionRef, docSnapshot.id));
+	}
+}
+
+export async function signIn() {
+	console.log('signing in...');
+	if (!auth.currentUser) {
+		try {
+			await signInAnonymously(auth);
+		} catch (error) {
+			console.error(error);
+			throw new Error('could not sign in...');
+		}
+	}
+	console.log('userID: ' + auth.currentUser.uid);
+	userID.set(auth.currentUser.uid)
+}
+
+export async function createGame(settings) {
+	console.log('creating game...');
+	try {
+		const gamesCollRef = collection(db, 'games');
+		const gameRef = await addDoc(gamesCollRef, { ...settings });
+		gameID.set(gameRef.id);
+	} catch (error) {
+		console.error(error);
+		throw new Error('could not create game...');
+	}
+}
+
+export async function joinGame() {
+	console.log('joining game...');
+	const gameSnap = await getDoc(gameDocRef());
 
 	if (!gameSnap.exists()) {
-		throw new Error(`Game#${code} does not exist.`);
+		throw new Error('game does not exist...');
 	}
 
-	const gameData = gameSnap.data();
-	const playerCap = gameData.playerCap;
-	const playersRef = collection(gameRef, 'players');
-	const playersSnap = await getDocs(playersRef);
-	const playerCount = playersSnap.size;
+	const playerCap = gameSnap.data().playerCap;
+	const ref = playersCollRef();
+	const playerCount = (await getDocs(ref)).size;
 
 	if (playerCount >= playerCap) {
-		throw new Error(`Game#${code} is already full.`);
-	} 
+		throw new Error('game is already full...');
+	}
 
-	const playerRef = await addDoc(playersRef, { name });
-	return playerRef;
+	await setDoc(doc(ref, get(userID)), { name: get(userName) });
+	console.log('gameID: ' + get(gameID));
 }
 
-export { db };
+export async function hangUp(callerID, calleeID) {
+	console.log(`hanging up on ${calleeID}...`);
+
+	const callRef = callDocRef(callerID, calleeID);
+	const offerCandidatesRef = collection(callRef, 'offerCandidates');
+	const answerCandidatesRef = collection(callRef, 'answerCandidates');
+
+	await deleteCollection(offerCandidatesRef);
+	await deleteCollection(answerCandidatesRef);
+	await deleteDoc(callRef);
+}
+
+export async function leaveGame(gameID, playerID) {
+	console.log('leaving game...');
+
+	const playerRef = playerDocRef();
+
+	// hang up on everyone
+	const callColl = collection(playerRef, 'calls');
+	const querySnapshot = await getDocs(callColl);
+	for (const docSnapshot of querySnapshot.docs) {
+		hangUp(gameID, playerID, docSnapshot.id);
+	}
+
+	// delete player doc from game
+	await deleteDoc(playerRef);
+
+	// delete game doc if game is empty
+	const snapshot = await getCountFromServer(playersCollRef());
+	const playerCount = snapshot.data().count;
+	if (playerCount === 0) {
+		await deleteDoc(gameDocRef());
+	}
+}
+
+export async function uploadCandidate(callID, candidate) {
+	await addDoc(collection(callDocRef(callID), get(userID)), candidate);
+}
+
+// export async function uploadOffer(callID, offer) {
+// 	await setDoc(callDocRef(callID), { offer, sender: get(userID), state: 'offered' });
+// }
+
+export async function updateCallDoc(callID, data) {
+	await setDoc(callDocRef(callID), data);
+}

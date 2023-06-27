@@ -1,24 +1,20 @@
 <script>
 	import { goto } from '$app/navigation';
-	import { player } from '$lib/stores.js';
-	import { createPlayer } from '$lib/firebase.js';
+	import { userName, gameID } from '$lib/stores.js';
+	import { signIn, joinGame } from '$lib/firebase.js';
 
-	let code = '';
-	let name = '';
-
-	async function joinGame() {
+	async function handleJoinBtn() {
 		try {
-			const playerRef = await createPlayer(code, name);
-			player.set({ id: playerRef.id, name });
-			goto(`/games/${code}`);
+			await signIn();
+			await joinGame();
+			goto('/games/' + $gameID);
 		} catch (error) {
-			// TODO: Display the error to the suer
 			console.error(error);
+			alert(error);
 		}
 	}
 
-	function createGame() {
-		player.set({ name });
+	function handleCreateBtn() {
 		goto('/createGame');
 	}
 </script>
@@ -27,10 +23,10 @@
 	<img src="/darts.png" alt="dartsapp logo" />
 	<h1>dartsapp</h1>
 </div>
-<input type="text" placeholder="Enter a Nickname" bind:value={name} />
-<input type="text" placeholder="Enter a Gamecode" bind:value={code} />
-<button type="button" disabled={!name || !code} on:click={joinGame}>Join Game</button>
-<button type="button" disabled={!name} on:click={createGame}>Create Game</button>
+<input type="text" placeholder="Username" bind:value={$userName} />
+<input type="text" placeholder="Game ID" bind:value={$gameID} />
+<button type="button" disabled={!$userName || !$gameID} on:click={handleJoinBtn}>Join Game</button>
+<button type="button" disabled={!$userName} on:click={handleCreateBtn}>Create Game</button>
 
 <style>
 	#logo {
@@ -41,9 +37,7 @@
 	img {
 		width: 30px;
 	}
-	button,
-	input {
-		margin: 10px 0px;
-		width: 100%;
+	button, input {
+		min-width: 160px;
 	}
 </style>

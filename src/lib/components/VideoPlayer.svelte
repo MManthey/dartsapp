@@ -1,29 +1,28 @@
 <script>
-	import { player } from '$lib/stores.js';
-	import { onMount } from 'svelte';
-
-	export let p;
+	export let label;
+	export let stream;
+	export let muted;
 
 	let videoElement;
 
 	$: {
-		if (videoElement && p.peer.stream) {
-			videoElement.srcObject = p.peer.stream;
+		if (videoElement) {
+			videoElement.srcObject = stream?.getVideoTracks().length ? stream : null;
 		}
 	}
 </script>
 
 <div class="video-container">
-	<video autoplay playsinline bind:this={videoElement} muted={p.id === $player.id} />
-	<div class="label">{p.name}</div>
+	<video autoplay playsinline bind:this={videoElement} {muted} />
+	<div class="label">{label}</div>
 </div>
 
 <style>
 	.video-container {
 		position: relative;
-		width: 300px;
-		height: 300px;
-		background-color: #555;
+		width: 280px;
+		height: 280px;
+		background-color: violet;
 	}
 	.label {
 		position: absolute;

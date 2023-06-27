@@ -1,17 +1,14 @@
-<body>
+<div id="dartsapp">
 	<slot />
-</body>
+</div>
 
 <style>
-	body {
+	#dartsapp {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: center;
+		gap: 20px;
 		max-width: 1024px;
 		margin: auto;
-	}
-	body > * {
-		max-width: 300px;
 	}
 </style>
