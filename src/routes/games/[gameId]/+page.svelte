@@ -1,133 +1,111 @@
-<script>
+<script lang="ts">
+	import ScoreInput from './ScoreInput.svelte';
+	import Scoreboard from './Scoreboard.svelte';
+	import VideoChat from './VideoChat.svelte';
+
+
 	import { onMount, onDestroy } from 'svelte';
-	import { userID, userName, gameID } from '$lib/stores.js';
+	import { userID, gameID } from '$lib/stores';
 	import { onSnapshot, collection } from 'firebase/firestore';
-	import { playersCollRef, callDocRef, uploadCandidate, updateCallDoc, leaveGame } from '$lib/firebase.js';
-	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
+	import {
+		getGameDocRef,
+		getPlayersCollRef,
+		getCallDocRef,
+		addCandidate,
+		updateCall,
+		leaveGame,
+		updateGame,
+		updatePlayerData
+	} from '$lib/firebase';
+	import { CameraIcon, CameraOffIcon, MicIcon, MicOffIcon, LogOutIcon } from 'svelte-feather-icons';
+	import { Modal, modalStore } from '@skeletonlabs/skeleton';
+	import type { ModalSettings } from '@skeletonlabs/skeleton';
 
 	const servers = {
 		iceServers: [
 			{
 				urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']
-				// turn server ???
+				// turn server ??? -> https://www.metered.ca/tools/openrelay/
 			}
 		],
 		iceCandidatePoolSize: 10
 	};
+	const subscriptions: (() => void)[] = [];
 
-	let localStream = new MediaStream();
-	let unsubscribe;
 	let camOn = false;
 	let micOn = false;
-	let players = {};
+	let localStream = new MediaStream();
+
+	let players: Map<string, Player> = new Map();
+	let peers: Map<string, Peer> = new Map();
+	let game: Game;
 
 	async function toggleCam() {
 		camOn = !camOn;
 
 		if (camOn) {
-			console.log(`${$userName}: turning ON camera`);
 			const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
 			camStream.getVideoTracks().forEach((track) => {
 				localStream.addTrack(track);
-				Object.values(players).forEach(({ name, pc }) => {
-					console.log(`${$userName} -> ${name}: +${track.kind}`);
+				for (let { pc } of peers.values()) {
 					pc.addTrack(track);
-				});
+				}
 			});
-			localStream = localStream;
 		} else {
-			console.log(`${$userName}: turning OFF camera`);
 			localStream.getVideoTracks().forEach((track) => {
 				track.stop();
 				localStream.removeTrack(track);
-				Object.values(players).forEach(({ name, pc }) => {
-					console.log(`${$userName} -> ${name}: -${track.kind}`);
+				for (let { pc } of peers.values()) {
 					let sender = pc.getSenders().find((s) => s.track === track);
 					sender && pc.removeTrack(sender);
-				});
+				}
 			});
-			localStream = localStream;
 		}
+		players = players; // rerender
 	}
 
 	async function toggleMic() {
 		micOn = !micOn;
 
 		if (micOn) {
-			console.log(`${$userName}: turning ON microphone`);
 			const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 			micStream.getAudioTracks().forEach((track) => {
 				localStream.addTrack(track);
-				Object.values(players).forEach(({ name, pc }) => {
-					console.log(`${$userName} -> ${name}: +${track.kind}`);
+				for (let { pc } of peers.values()) {
 					pc.addTrack(track);
-				});
+				}
 			});
 		} else {
-			console.log(`${$userName}: turning OFF microphone`);
 			localStream.getAudioTracks().forEach((track) => {
 				track.stop();
 				localStream.removeTrack(track);
-				Object.values(players).forEach(({ name, pc }) => {
-					console.log(`${$userName} -> ${name}: -${track.kind}`);
+				for (let { pc } of peers.values()) {
 					let sender = pc.getSenders().find((s) => s.track === track);
 					sender && pc.removeTrack(sender);
-				});
+				}
 			});
 		}
 	}
 
-	function disconnect({ pc, stream, subs, name }) {
-		console.log(`${$userName} - ${name}: closing connection`);
-		pc?.close();
-		pc = null;
-		stream?.getTracks().forEach((track) => track.stop());
-		stream = null;
-		subs?.forEach((unsubscribe) => unsubscribe());
-	}
-
-	async function setupConnection(playerID, callID) {
-		const con = `${$userName} - ${players[playerID].name}`;
-		console.log(`${con}: setup `);
-
-		const callRef = callDocRef(callID);
-
-		const pc = new RTCPeerConnection(servers);
-		const stream = new MediaStream();
-		const subs = [];
+	async function setupConnection(playerID: string, callID: string) {
+		const pc: RTCPeerConnection = new RTCPeerConnection(servers);
+		const subs: (() => void)[] = [];
+		const callDocRef = getCallDocRef(callID);
 
 		// add any initial tracks to the pc
 		localStream.getTracks().forEach((track) => {
 			pc.addTrack(track);
 		});
 
-		// pc.onsignalingstatechange = () => {
-		// 	console.log(`${con}: signaling state is ${pc.signalingState}`);
-		// };
-
-		// pc.oniceconnectionstatechange = () => {
-		// 	console.log(`${con}: ICE connection state is ${pc.iceConnectionState}`);
-		// };
-
-		// pc.onicegatheringstatechange = () => {
-		// 	console.log(`${con}: ICE gathering state is ${pc.iceGatheringState}`);
-		// };
-
+		// listen to new local candidates -> upload them to the server
 		pc.onicecandidate = async ({ candidate }) => {
-			console.log(`${$userName} -> Server: +candidate`);
-			candidate && (await uploadCandidate(callID, candidate.toJSON()));
+			candidate && (await addCandidate(callID, candidate));
 		};
 
-		// pc.onconnectionstatechange = () => {
-		// 	console.log(`${con}: connection state is ${pc.connectionState}`);
-		// };
-
+		// initiate new negotiation if needed
 		pc.onnegotiationneeded = async () => {
-			console.log(`${con}: negotiation needed`);
-
 			// create offer description and set local description
 			const offerDescription = await pc.createOffer();
-			console.log(`${con}: setting local description`);
 			await pc.setLocalDescription(offerDescription);
 
 			// create offer object and upload to server
@@ -135,28 +113,27 @@
 				sdp: offerDescription.sdp,
 				type: offerDescription.type
 			};
-			console.log(`${$userName} -> Server: +offer`);
-			// await uploadOffer(callID, offer);
-			await updateCallDoc(callID, { offer, sender: $userID, state: 'offered' });
+			await updateCall(callID, { offer, sender: $userID, state: 'offered' });
 		};
 
+		// listen for remote tracks being added
 		pc.ontrack = ({ track }) => {
-			console.log(`${$userName} <- ${players[playerID].name}: +${track.kind}`);
-			track.onmute = () => {
-				console.log(`${$userName} <- ${players[playerID].name}: -${track.kind}`);
-				stream.removeTrack(track);
-				players[playerID].stream = stream;
-			};
-			stream.addTrack(track);
-			players[playerID].stream = stream;
+			const stream = players.get(playerID)?.stream;
+			if (stream) {
+				track.onmute = () => {
+					stream.removeTrack(track);
+					players = players; // rerender
+				};
+				stream.addTrack(track);
+				players = players; // rerender
+			}
 		};
 
+		// listen for new remote candidates being added
 		subs.push(
-			onSnapshot(collection(callRef, playerID), (snapshot) => {
-				console.log('change to condidate collection');
+			onSnapshot(collection(callDocRef, playerID), (snapshot) => {
 				snapshot.docChanges().forEach((change) => {
 					if (change.type === 'added') {
-						console.log(`${$userName} <- Server: +candidate`);
 						const candidate = new RTCIceCandidate(change.doc.data());
 						pc.remoteDescription && pc.addIceCandidate(candidate);
 					}
@@ -164,16 +141,14 @@
 			})
 		);
 
+		// listen for changes to the call document
 		subs.push(
-			onSnapshot(callRef, async (snapshot) => {
-				console.log('change to call document');
+			onSnapshot(callDocRef, async (snapshot) => {
 				const data = snapshot.data();
 
 				if (!data || data.sender === $userID) return;
 
 				if (data.state === 'offered') {
-					console.log(`${$userName} <- Server: +offer`);
-
 					// set remote description with incoming offer
 					await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
 
@@ -186,105 +161,189 @@
 						type: answerDescription.type,
 						sdp: answerDescription.sdp
 					};
-					await updateCallDoc(callID, { answer, sender: $userID, state: 'answered' })
+					await updateCall(callID, { answer, sender: $userID, state: 'answered' });
 				} else if (data.state === 'answered') {
-					console.log(`${$userName} <- Server: +answer`);
 					pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-					await updateCallDoc(callID, { state: 'exchanged' })
+					await updateCall(callID, { sender: $userID, state: 'exchanged' });
 				}
 			})
 		);
 
-		players[playerID].pc = pc;
-		players[playerID].stream = stream;
-		players[playerID].subs = subs;
+		return { pc, subs };
+	}
+
+	function getNextPlayerID() {
+		if (game.size < 2) {
+			throw new Error('getNextPlayerID: game.size < 2');
+		}
+		const playerIDs = Array.from(players.keys());
+		const userIdx = playerIDs.indexOf($userID);
+
+		if (userIdx === -1) {
+			throw new Error('getNextPlayerID: userIdx === -1');
+		}
+
+		const idx = userIdx === playerIDs.length - 1 ? 0 : userIdx + 1;
+		return playerIDs[idx];
+	}
+
+	function endTurn(event: CustomEvent<Dart[]>) {
+		const darts = event.detail;
+		const playerData = players.get($userID)?.data;
+
+		if (!playerData) return;
+
+		let points = darts.reduce((total, dart) => {
+			return total + (dart.s || 0) * dart.x;
+		}, 0);
+
+		const doubles = darts.filter((darts) => darts.s !== 0 && darts.x === 2);
+
+		const overShot = points > playerData.remaining;
+		const pointsFit = points === playerData.remaining;
+		const brokeDoubles = pointsFit && game.outMode === 'double' && !doubles.pop();
+
+		points = overShot || brokeDoubles ? 0 : points;
+
+		const remaining = playerData.remaining - points;
+		const scores = playerData.scores ? [...playerData.scores, points] : [points];
+		const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+		updatePlayerData({ ...playerData, remaining, scores, avg });
+
+		const gameOver = remaining === 0;
+
+		const turn = gameOver || game.size === 1 ? $userID : getNextPlayerID();
+		const state = gameOver ? 'over' : game.state;
+
+		updateGame({ ...game, turn, state });
 	}
 
 	onMount(async () => {
-		let joined = false;
+		let initialized = false;
 
-		unsubscribe = onSnapshot(playersCollRef(), (snapshot) => {
-			snapshot.docChanges().forEach(async (change) => {
-				const playerID = change.doc.id;
-				if (playerID !== $userID) {
-					if (change.type === 'added') {
-						players[playerID] = {
-							...change.doc.data()
-						};
-						const callID = joined ? playerID + $userID : $userID + playerID;
-						setupConnection(playerID, callID);
-					} else if (change.type === 'removed') {
-						disconnect(players[playerID]);
-						delete players[playerID];
-						players = { ...players };
-						//hangUp($gameID, $userID, id);
-					}
+		subscriptions.push(
+			onSnapshot(getGameDocRef(), (snapshot) => {
+				game = snapshot.data() as Game;
+
+				if (game?.state === 'over') {
+					const modal: ModalSettings = {
+						type: 'alert',
+						// Data
+						title: 'We have a winner!',
+						body: `Congratulations to ${players.get(game.turn)?.data.name}!`
+						// image: 'https://i.imgur.com/WOgTG96.gif'
+					};
+					modalStore.trigger(modal);
 				}
-			});
-			joined = true;
-		});
+			})
+		);
 
-		console.log('Gamepage mounted...');
+		subscriptions.push(
+			onSnapshot(getPlayersCollRef(), (snapshot) => {
+				snapshot.docChanges().forEach(async (change) => {
+					const playerID = change.doc.id;
+					const data = change.doc.data() as PlayerData;
+					const isUser = playerID === $userID;
+					if (change.type === 'added') {
+						players = players.set(playerID, {
+							data,
+							stream: isUser ? localStream : new MediaStream()
+						}); // rerender
+
+						if (!isUser) {
+							const callID = initialized ? playerID + $userID : $userID + playerID;
+							peers.set(playerID, await setupConnection(playerID, callID));
+						}
+
+						if (players.size === game.size) {
+							updateGame({ ...game, state: 'playing', turn: Array.from(players.keys())[0] });
+						}
+					} else if (change.type === 'modified') {
+						const stream = players.get(playerID)?.stream;
+						if (stream) {
+							players = players.set(playerID, { data, stream }); // rerender
+						}
+					} else if (!isUser && change.type === 'removed') {
+						const peer = peers.get(playerID);
+						const player = players.get(playerID);
+						if (peer && player) {
+							let { pc, subs } = peer;
+							let { stream } = player;
+
+							pc.close();
+							subs.forEach((unsubscribe) => unsubscribe());
+
+							stream.getTracks().forEach((track: MediaStreamTrack) => {
+								track.stop();
+								stream.removeTrack(track);
+							});
+
+							peers.delete(playerID);
+							players.delete(playerID);
+							players = players; // rerender
+						}
+					}
+				});
+				initialized = true;
+			})
+		);
 	});
 
 	onDestroy(async () => {
-		localStream?.getTracks().forEach((track) => track.stop());
-		localStream = null;
-		unsubscribe();
-		Object.values(players).forEach((player) => {
-			disconnect(player);
-		});
+		if (game?.state === 'playing' && game.turn === $userID && game.size > 1) {
+			const turn = getNextPlayerID();
+			updateGame({ ...game, turn });
+		}
+
+		for (let { stream } of players.values()) {
+			stream.getTracks().forEach((track) => {
+				track.stop();
+				stream.removeTrack(track);
+			});
+		}
+
+		subscriptions.forEach((unsubscribe) => unsubscribe());
+
+		for (let { pc, subs } of peers.values()) {
+			pc.close();
+			subs.forEach((unsubscribe) => unsubscribe());
+		}
+
 		leaveGame($gameID, $userID);
-		console.log('Gamepage destroyed...');
 	});
 </script>
 
-<h1>Game</h1>
-<div id="videoChat">
-	{#each Object.values(players) as player}
-		<VideoPlayer label={player.name} stream={player.stream} muted={false} />
-	{/each}
-	<VideoPlayer label={$userName} stream={localStream} muted={true} />
+<div class="flex flex-col gap-12 items-center">
+	{#if game?.state === 'waiting'}
+		<h3 class="h3 font-bold mb-12">#{game.shortId}</h3>
+	{/if}
+	<VideoChat {players} />
+	<Scoreboard {game} {players} />
+	{#if game?.state === 'playing' && game.turn === $userID}
+		<ScoreInput
+			on:scoreInput={endTurn}
+			outMode={game.outMode}
+			remaining={players.get($userID)?.data.remaining || Number(game.outMode)}
+		/>
+	{/if}
+	<div class="flex flex-row justify-center gap-5">
+		<button
+			class="btn-icon btn-icon-xl {camOn ? 'variant-filled-error' : 'variant-filled'}"
+			type="button"
+			on:click={toggleCam}
+		>
+			{#if camOn}<CameraOffIcon /> {:else} <CameraIcon />{/if}
+		</button>
+		<button
+			class="btn-icon btn-icon-xl {micOn ? 'variant-filled-error' : 'variant-filled'}"
+			type="button"
+			on:click={toggleMic}
+		>
+			{#if micOn}<MicOffIcon /> {:else} <MicIcon />{/if}
+		</button>
+		<a class="btn-icon btn-icon-xl variant-filled-error" href="/"><button><LogOutIcon /></button></a
+		>
+	</div>
 </div>
-<div id="scoreboard">
-	<table>
-		<thead>
-			<tr>
-				<th>Player</th>
-				<th>Remaining</th>
-				<th>Average</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each Object.values(players) as player}
-				<tr>
-					<td>{player.name}</td>
-					<td>{player.remaining || '501'}</td>
-					<td>{player.avg || '0.00'}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
-<div id="buttons">
-	<button on:click={toggleCam}>Cam {camOn ? 'OFF' : 'ON'}</button>
-	<button on:click={toggleMic}>Mic {micOn ? 'OFF' : 'ON'}</button>
-	<a href="/"><button>Leave Game</button></a>
-</div>
-
-<style>
-	#videoChat {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 20px;
-	}
-	#buttons {
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-		margin-top: 20px;
-	}
-	button {
-		min-width: 160px;
-	}
-</style>
+<Modal />

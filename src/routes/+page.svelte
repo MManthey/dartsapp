@@ -1,16 +1,26 @@
-<script>
+<script lang="ts">
 	import { goto } from '$app/navigation';
-	import { userName, gameID } from '$lib/stores.js';
-	import { signIn, joinGame } from '$lib/firebase.js';
+	import { userName, gameID } from '$lib/stores';
+	import { signIn, joinGame } from '$lib/firebase';
+	import { Toast, toastStore } from '@skeletonlabs/skeleton';
+	import type { ToastSettings } from '@skeletonlabs/skeleton';
+
+	let shortId: string;
+
+	$: shortId = shortId?.toUpperCase();
 
 	async function handleJoinBtn() {
 		try {
 			await signIn();
-			await joinGame();
+			await joinGame(shortId);
 			goto('/games/' + $gameID);
-		} catch (error) {
-			console.error(error);
-			alert(error);
+		} catch (error: any) {
+			const t: ToastSettings = {
+				message: error.message,
+				// Provide any utility or variant background style:
+				background: 'variant-filled-error'
+			};
+			toastStore.trigger(t);
 		}
 	}
 
@@ -19,25 +29,40 @@
 	}
 </script>
 
-<div id="logo">
-	<img src="/darts.png" alt="dartsapp logo" />
-	<h1>dartsapp</h1>
+<div class="max-w-xs mx-auto">
+	<h3 class="h3 font-bold mb-12">Create or Join a Game</h3>
+	<input
+		class="input w-full p-2 rounded-lg mb-6"
+		type="text"
+		name="username"
+		autocomplete="on"
+		placeholder="Username"
+		bind:value={$userName}
+	/>
+	<input
+		class="input w-full p-2 rounded-lg mb-12"
+		type="text"
+		name="game-id"
+		placeholder="Game ID"
+		bind:value={shortId}
+	/>
+	<div class="flex space-x-4">
+		<button
+			class="btn variant-filled w-full py-2 px-4 rounded-lg"
+			type="button"
+			disabled={!$userName}
+			on:click={handleCreateBtn}
+		>
+			Create
+		</button>
+		<button
+			class="btn variant-filled w-full py-2 px-4 rounded-lg"
+			type="button"
+			disabled={!$userName || !shortId}
+			on:click={handleJoinBtn}
+		>
+			Join
+		</button>
+	</div>
 </div>
-<input type="text" placeholder="Username" bind:value={$userName} />
-<input type="text" placeholder="Game ID" bind:value={$gameID} />
-<button type="button" disabled={!$userName || !$gameID} on:click={handleJoinBtn}>Join Game</button>
-<button type="button" disabled={!$userName} on:click={handleCreateBtn}>Create Game</button>
-
-<style>
-	#logo {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-	}
-	img {
-		width: 30px;
-	}
-	button, input {
-		min-width: 160px;
-	}
-</style>
+<Toast />
