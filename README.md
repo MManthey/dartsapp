@@ -1,14 +1,14 @@
 # Dartsapp
 
-Dartsapp is a web app to play darts remotely with your friends.
+[Dartsapp](https://dartsapp-ad95a.web.app/) is a web app to play darts remotely with your friends.
 
 ### Technologies
 
-- SvelteKit
-- Firebase
-- Typescript
-- TailwindCSS
-- Skeleton (UI toolkit)
+- [SvelteKit](https://kit.svelte.dev/)
+- [Firebase](https://firebase.google.com/)
+- [Typescript](https://www.typescriptlang.org/)
+- [TailwindCSS](https://tailwindcss.com/)
+- [Skeleton](https://www.skeleton.dev/)
 
 ## Developing
 
