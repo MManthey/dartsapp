@@ -1,18 +1,14 @@
-# create-svelte
+# Dartsapp
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+Dartsapp is a web app to play darts remotely with your friends.
 
-## Creating a project
+### Technologies
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
-```
+- SvelteKit
+- Firebase
+- Typescript
+- TailwindCSS
+- Skeleton (UI toolkit)
 
 ## Developing
 
@@ -37,9 +33,34 @@ You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
 
-## Todo's
+## Bugs/Problems
 
-- Double-Out
-- Deployment
-- PWA
-- Offline Mode
+- [ ] Check if shortID is free
+- [ ] Redirect to Home 404/50x
+- [ ] preventDefault leaveGame
+- [ ] Layout on safari (mobile)
+- [ ] Deleting game data docs/colls
+- [ ] Turnserver
+
+## Near Term Features
+
+- [ ] Name & Code Input Validation
+- [ ] Single input inc index
+- [ ] Dartsapp Link Home
+- [ ] Copy gameID to Clipboard
+- [ ] Scroll to input on turn
+- [ ] Focus on player on turn
+- [ ] Sets/Legs
+- [ ] Game Mode: Cricket
+- [ ] Avatars
+- [ ] Offline Mode
+
+## Long Term Features
+
+- [ ] Save Games
+- [ ] Game Modes for Training
+- [ ] Stats & Graphs
+- [ ] Social Media Share (Results)
+- [ ] Voice Input
+- [ ] Achievments
+- [ ] Screenshots
