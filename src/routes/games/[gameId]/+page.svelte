@@ -3,7 +3,6 @@
 	import Scoreboard from './Scoreboard.svelte';
 	import VideoChat from './VideoChat.svelte';
 
-
 	import { onMount, onDestroy } from 'svelte';
 	import { userID, gameID } from '$lib/stores';
 	import { onSnapshot, collection } from 'firebase/firestore';
@@ -17,8 +16,15 @@
 		updateGame,
 		updatePlayerData
 	} from '$lib/firebase';
-	import { CameraIcon, CameraOffIcon, MicIcon, MicOffIcon, LogOutIcon } from 'svelte-feather-icons';
-	import { Modal, modalStore } from '@skeletonlabs/skeleton';
+	import {
+		CameraIcon,
+		CameraOffIcon,
+		MicIcon,
+		MicOffIcon,
+		LogOutIcon,
+		CopyIcon
+	} from 'svelte-feather-icons';
+	import { Modal, clipboard, modalStore } from '@skeletonlabs/skeleton';
 	import type { ModalSettings } from '@skeletonlabs/skeleton';
 
 	const servers = {
@@ -316,7 +322,10 @@
 
 <div class="flex flex-col gap-12 items-center">
 	{#if game?.state === 'waiting'}
-		<h3 class="h3 font-bold mb-12">#{game.shortId}</h3>
+		<button class="btn btn-xl variant-ghost rounded-lg" on:click={() => navigator.clipboard.writeText(game.shortId)}>
+			#{game.shortId}
+			<CopyIcon class="ml-5"/>
+		</button>
 	{/if}
 	<VideoChat {players} />
 	<Scoreboard {game} {players} />
