@@ -23,7 +23,7 @@
 		<tbody>
 			{#each [...players] as [id, player]}
 				<tr>
-					<td class="max-w-0 overflow-hidden overflow- text-ellipsis">
+					<td class="max-w-0 overflow-hidden text-ellipsis">
 						{player.data.name.slice(0, 8)}
 						{#if game?.state === 'playing' && game.turn === id}
 							<span class="ml-2 badge variant-filled-success">Turn</span>

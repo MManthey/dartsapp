@@ -10,10 +10,12 @@
 </script>
 
 <div class="flex justify-between items-center px-10 py-6">
-	<h2 class="h2 font-bold flex items-center">
-		Dartsapp
-		<span class="ml-2 badge variant-filled-warning"> Beta </span>
-	</h2>
+	<a href="/">
+		<h2 class="h2 font-bold flex items-center">
+			Dartsapp
+			<span class="ml-2 badge variant-filled-warning"> Beta </span>
+		</h2>
+	</a>
 	<LightSwitch />
 </div>
 <main class="min-h-screen">

@@ -46,7 +46,7 @@ You can preview the production build with `npm run preview`.
 
 - [ ] Name & Code Input Validation
 - [ ] Single input inc index
-- [ ] Dartsapp Link Home
+- [x] Dartsapp Link Home
 - [ ] Copy gameID to Clipboard
 - [ ] Scroll to input on turn
 - [ ] Focus on player on turn
