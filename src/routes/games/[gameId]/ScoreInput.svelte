@@ -119,7 +119,14 @@
 			<button
 				class="btn btn-lg rounded-lg {darts[i].s === score ? 'variant-ghost' : 'variant-filled'}"
 				disabled={score > 20 && darts[i].x !== 1}
-				on:click={() => (darts[i].s = darts[i].s === score ? null : score)}
+				on:click={() => {
+					if (darts[i].s === score) {
+						darts[i].s = null;
+					} else {
+						darts[i].s = score;
+						i < dartCount - 1 && i++;
+					}
+				}}
 			>
 				{score}
 			</button>
@@ -143,7 +150,7 @@
 		</button>
 		<button
 			class="btn btn-lg rounded-lg variant-filled"
-			disabled={i === 2 || darts[i].s === null}
+			disabled={i === dartCount - 1 || darts[i].s === null}
 			on:click={() => i++}
 		>
 			<ArrowRightIcon class="min-w-min" />
