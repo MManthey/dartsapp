@@ -54,7 +54,6 @@
 		if (camOn) {
 			const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
 			camStream.getVideoTracks().forEach((track) => {
-				console.log('sending video');
 				localStream.addTrack(track);
 				for (let { pc } of peers.values()) {
 					pc.addTrack(track);
@@ -62,7 +61,6 @@
 			});
 		} else {
 			localStream.getVideoTracks().forEach((track) => {
-				console.log('removing video');
 				track.stop();
 				localStream.removeTrack(track);
 				for (let { pc } of peers.values()) {
@@ -79,7 +77,6 @@
 		if (micOn) {
 			const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 			micStream.getAudioTracks().forEach((track) => {
-				console.log('sending audio');
 				localStream.addTrack(track);
 				for (let { pc } of peers.values()) {
 					pc.addTrack(track);
@@ -87,7 +84,6 @@
 			});
 		} else {
 			localStream.getAudioTracks().forEach((track) => {
-				console.log('removing audio');
 				track.stop();
 				localStream.removeTrack(track);
 				for (let { pc } of peers.values()) {
@@ -105,7 +101,6 @@
 
 		// add any initial tracks to the pc
 		localStream.getTracks().forEach((track) => {
-			console.log(`sending ${track.kind}`);
 			pc.addTrack(track);
 		});
 
@@ -130,9 +125,7 @@
 
 		// listen for remote tracks being added
 		pc.ontrack = ({ track }) => {
-			console.log(`recieving ${track.kind}`);
 			track.onmute = () => {
-				console.log(`${track.kind} was removed`);
 				remoteStream.removeTrack(track);
 				players[idx].stream = remoteStream; // rerender
 			};
@@ -140,9 +133,9 @@
 			players[idx].stream = remoteStream;
 		};
 
-		pc.onconnectionstatechange = async () => {
-			console.log('Connection state:', pc.connectionState);
-		};
+		// pc.onconnectionstatechange = async () => {
+		// 	console.log('Connection state:', pc.connectionState);
+		// };
 
 		// pc.oniceconnectionstatechange = () => {
 		// 	console.log('ICE connection state:', pc.iceConnectionState);

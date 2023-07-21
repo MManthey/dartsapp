@@ -43,7 +43,6 @@ const database = getDatabase(app);
 // auth
 
 export async function signIn() {
-	console.log('signing in...');
 	if (!auth.currentUser) {
 		try {
 			await signInAnonymously(auth);
@@ -54,13 +53,11 @@ export async function signIn() {
 	}
 
 	if (auth.currentUser) {
-		console.log('userID: ' + auth.currentUser.uid);
 		userID.set(auth.currentUser.uid);
 	}
 }
 
 export async function signOut() {
-	console.log('signing out...');
 	if (auth.currentUser) {
 		try {
 			await auth.signOut();
@@ -98,7 +95,6 @@ export function getCallDocRef(callerID: string, calleeID: string) {
 }
 
 export async function createGame(game: Game) {
-	console.log('creating game...');
 	try {
 		const gamesCollRef = collection(firestore, 'games');
 		const gameRef = await addDoc(gamesCollRef, game);
@@ -110,8 +106,6 @@ export async function createGame(game: Game) {
 }
 
 export async function joinGame(shortId: string) {
-	console.log('joining game...');
-
 	const q = query(collection(firestore, 'games'), where('shortId', '==', shortId));
 
 	const querySnapshot = await getDocs(q);
@@ -140,7 +134,6 @@ export async function joinGame(shortId: string) {
 	const remaining = game.gameMode;
 
 	await setDoc(getPlayerDocRef(), { name: get(userName), idx: playerCount, remaining, avg: 0 });
-	console.log('gameID: ' + get(gameID));
 }
 
 export async function updateGame(state: 'open' | 'closed' | 'over', turn?: number) {

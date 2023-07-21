@@ -35,21 +35,16 @@ You can preview the production build with `npm run preview`.
 
 ## Bugs/Problems
 
-- [x] refreshing the game page crashes it
-- [ ] Check if shortID is free
-- [ ] Redirect to Home 404/50x
+- [ ] check if shortID is free
+- [ ] redirect to Home 404/50x
 - [ ] preventDefault leaveGame
+- [ ] handle declined cam/mic permission
 - [ ] Layout on safari (mobile)
-- [ ] Deleting game data docs/colls
-- [ ] Turnserver
 
 ## Near Term Features
 
 - [ ] Display importat game settings
 - [ ] Name & Code Input Validation
-- [x] Single input inc index
-- [x] Dartsapp Link Home
-- [x] Copy gameID to Clipboard
 - [ ] Scroll to input on turn
 - [ ] Focus on player on turn
 - [ ] Sets/Legs

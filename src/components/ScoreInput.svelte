@@ -68,8 +68,49 @@
 					} else if (remainingPoints <= 60 && remainingPoints % 3 === 0) {
 						optimalDarts[idx] = { s: remainingPoints / 3, x: 3 };
 					} else {
-						const twenties = Math.floor(remaining / 20);
-						optimalDarts[idx] = { s: 20, x: Math.min(twenties, 3) };
+						let found = false;
+						for (let j = 0; j < possibleScores.length && !found; j++) {
+							const rem = remainingPoints - possibleScores[j];
+							if (possibleScores.includes(rem)) {
+								optimalDarts[idx] = { s: possibleScores[j], x: 1 };
+								found = true;
+							} else if (rem <= 40 && rem % 2 === 0) {
+								optimalDarts[idx] = { s: rem / 2, x: 2 };
+								found = true;
+							} else if (rem <= 60 && rem % 3 === 0) {
+								optimalDarts[idx] = { s: rem / 3, x: 3 };
+								found = true;
+							}
+						}
+						for (let j = 1; j <= 20 && !found; j++) {
+							const rem = remainingPoints - j * 2;
+							if (possibleScores.includes(rem)) {
+								optimalDarts[idx] = { s: possibleScores[j], x: 1 };
+								found = true;
+							} else if (rem <= 40 && rem % 2 === 0) {
+								optimalDarts[idx] = { s: rem / 2, x: 2 };
+								found = true;
+							} else if (rem <= 60 && rem % 3 === 0) {
+								optimalDarts[idx] = { s: rem / 3, x: 3 };
+								found = true;
+							}
+						}
+						for (let j = 1; j <= 20 && !found; j++) {
+							const rem = remainingPoints - j * 3;
+							if (possibleScores.includes(rem)) {
+								optimalDarts[idx] = { s: possibleScores[j], x: 1 };
+								found = true;
+							} else if (rem <= 40 && rem % 2 === 0) {
+								optimalDarts[idx] = { s: rem / 2, x: 2 };
+								found = true;
+							} else if (rem <= 60 && rem % 3 === 0) {
+								optimalDarts[idx] = { s: rem / 3, x: 3 };
+								found = true;
+							}
+						}
+						if (!found) {
+							optimalDarts[idx] = { s: 20, x: 3 };
+						}
 					}
 				}
 
