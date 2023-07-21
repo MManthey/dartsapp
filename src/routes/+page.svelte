@@ -13,7 +13,7 @@
 		try {
 			await signIn();
 			await joinGame(shortId);
-			goto('/games/' + $gameID);
+			goto(`/games/${$gameID}`);
 		} catch (error: any) {
 			const t: ToastSettings = {
 				message: error.message,

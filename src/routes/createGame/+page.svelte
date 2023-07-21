@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { gameID } from '$lib/stores';
 	import { signIn, createGame, joinGame } from '$lib/firebase';
+	import { gameID } from '$lib/stores';
 	import { RadioGroup, RadioItem, SlideToggle } from '@skeletonlabs/skeleton';
 
 	let game: Game = {
@@ -10,8 +10,8 @@
 		outMode: 'single',
 		size: 1,
 		isOnline: false,
-		turn: '',
-		state: 'waiting'
+		turn: 0,
+		state: 'open'
 	};
 
 	function generateShortId(length: number) {
@@ -28,7 +28,7 @@
 			await signIn();
 			await createGame(game);
 			await joinGame(game.shortId);
-			goto('/games/' + $gameID);
+			goto(`/games/${$gameID}`);
 		} catch (error) {
 			console.error(error);
 			alert(error);
@@ -50,8 +50,8 @@
 	<div class="mb-6">
 		<div class="font-bold text-md">Out Mode</div>
 		<RadioGroup class="grid grid-cols-2 mt-2" rounded="rounded-lg">
-			<RadioItem bind:group={game.outMode} name="justify" value="single">Single</RadioItem>
-			<RadioItem bind:group={game.outMode} name="justify" value="double">Double</RadioItem>
+			<RadioItem bind:group={game.outMode} name="single" value="single">Single</RadioItem>
+			<RadioItem bind:group={game.outMode} name="double" value="double">Double</RadioItem>
 		</RadioGroup>
 	</div>
 	<div class="mb-6">

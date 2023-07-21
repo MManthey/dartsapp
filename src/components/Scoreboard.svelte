@@ -2,12 +2,12 @@
 	import { ProgressRadial } from '@skeletonlabs/skeleton';
 
 	export let game: Game;
-	export let players: Map<string, Player>;
+	export let players: Player[];
 
 	let missing: number[] = [];
 
 	$: if (game) {
-		missing = Array(game.size - players.size);
+		missing = Array(game.size - players.length);
 	}
 </script>
 
@@ -16,24 +16,24 @@
 		<thead>
 			<tr>
 				<th>Player</th>
-				<th class="table-cell-fit">Score</th>
+				<th class="table-cell-fit">Player</th>
 				<th class="table-cell-fit">avg.</th>
 			</tr>
 		</thead>
 		<tbody>
-			{#each [...players] as [id, player]}
+			{#each [...players] as {idx, name, remaining, avg}}
 				<tr>
 					<td class="max-w-0 overflow-hidden text-ellipsis">
-						{player.data.name.slice(0, 8)}
-						{#if game?.state === 'playing' && game.turn === id}
+						{name.slice(0, 8)}
+						{#if game?.state === 'closed' && game.turn === idx}
 							<span class="ml-2 badge variant-filled-success">Turn</span>
 						{/if}
 					</td>
-					<td class="table-cell-fit">{player.data.remaining}</td>
-					<td class="table-cell-fit">{Math.round(player.data.avg)}</td>
+					<td class="table-cell-fit">{remaining}</td>
+					<td class="table-cell-fit">{Math.round(avg)}</td>
 				</tr>
 			{/each}
-			{#if game?.state === 'waiting'}
+			{#if game?.state === 'open'}
 				{#each missing as miss}
 					<tr>
 						<td><ProgressRadial stroke={120} width="w-6" /></td>

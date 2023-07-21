@@ -1,19 +1,20 @@
 import { get } from 'svelte/store';
 import { getApps, initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import {
-	CollectionReference,
 	getFirestore,
 	doc,
 	addDoc,
 	setDoc,
 	getDocs,
-	deleteDoc,
 	collection,
-	getCountFromServer,
 	query,
-	where
+	where,
+	deleteDoc,
+	updateDoc
 } from 'firebase/firestore';
+import { getDatabase, ref, set, onValue, onDisconnect } from 'firebase/database';
+
 import { gameID, userID, userName } from '$lib/stores.js';
 
 const firebaseConfig = {
@@ -35,35 +36,11 @@ if (!getApps().length) {
 }
 const auth = getAuth();
 
-const db = getFirestore(app);
+const firestore = getFirestore(app);
 
-export function getGameDocRef() {
-	const gameDocRef = doc(db, 'games', get(gameID));
-	return gameDocRef;
-}
+const database = getDatabase(app);
 
-export function getPlayersCollRef() {
-	const playersCollRef = collection(getGameDocRef(), 'players');
-	return playersCollRef;
-}
-
-function getPlayerDocRef(playerID = get(userID)) {
-	const playerDocRef = doc(getPlayersCollRef(), playerID);
-	return playerDocRef;
-}
-
-export function getCallDocRef(callID: string) {
-	const callDocRef = doc(getGameDocRef(), 'calls', callID);
-	return callDocRef;
-}
-
-async function deleteCollection(collectionRef: CollectionReference) {
-	const querySnapshot = await getDocs(collectionRef);
-
-	for (const docSnapshot of querySnapshot.docs) {
-		await deleteDoc(doc(collectionRef, docSnapshot.id));
-	}
-}
+// auth
 
 export async function signIn() {
 	console.log('signing in...');
@@ -72,7 +49,7 @@ export async function signIn() {
 			await signInAnonymously(auth);
 		} catch (error) {
 			console.error(error);
-			throw new Error('could not sign in...');
+			throw new Error('there was an Error signing in...');
 		}
 	}
 
@@ -82,10 +59,48 @@ export async function signIn() {
 	}
 }
 
+export async function signOut() {
+	console.log('signing out...');
+	if (auth.currentUser) {
+		try {
+			await auth.signOut();
+		} catch (error) {
+			throw new Error('there was an Error signing out...');
+		}
+	}
+}
+
+// firestore
+
+export function getGameDocRef() {
+	const gameDocRef = doc(firestore, 'games', get(gameID));
+	return gameDocRef;
+}
+
+export function getPlayersCollRef() {
+	const playersCollRef = collection(getGameDocRef(), 'players');
+	return playersCollRef;
+}
+
+export function getOtherPlayersQuery() {
+	const myQuery = query(getPlayersCollRef(), where('__name__', '!=', get(userID)));
+	return myQuery;
+}
+
+export function getPlayerDocRef(playerID = get(userID)) {
+	const playerDocRef = doc(getPlayersCollRef(), playerID);
+	return playerDocRef;
+}
+
+export function getCallDocRef(callerID: string, calleeID: string) {
+	const callDocRef = doc(getPlayerDocRef(callerID), 'calls', calleeID);
+	return callDocRef;
+}
+
 export async function createGame(game: Game) {
 	console.log('creating game...');
 	try {
-		const gamesCollRef = collection(db, 'games');
+		const gamesCollRef = collection(firestore, 'games');
 		const gameRef = await addDoc(gamesCollRef, game);
 		gameID.set(gameRef.id);
 	} catch (error) {
@@ -97,10 +112,7 @@ export async function createGame(game: Game) {
 export async function joinGame(shortId: string) {
 	console.log('joining game...');
 
-	const q = query(
-		collection(db, 'games'),
-		where('shortId', '==', shortId)
-	)
+	const q = query(collection(firestore, 'games'), where('shortId', '==', shortId));
 
 	const querySnapshot = await getDocs(q);
 
@@ -110,70 +122,107 @@ export async function joinGame(shortId: string) {
 		throw new Error('Collision!');
 	}
 	const gameSnap = querySnapshot.docs[0];
-	gameID.set(gameSnap.id)
+	gameID.set(gameSnap.id);
 	const game = gameSnap.data() as Game;
 
 	const playersCollRef = getPlayersCollRef();
 	const playersCollSnap = await getDocs(playersCollRef);
 	const playerCount = playersCollSnap.size;
 
-	if (game.state !== 'waiting' || playerCount >= game.size) {
+	if (game.state !== 'open' || playerCount >= game.size) {
 		throw new Error('Game is already in session!');
+	}
+
+	if (playerCount === game.size - 1) {
+		updateGame('closed');
 	}
 
 	const remaining = game.gameMode;
 
-	await setDoc(getPlayerDocRef(), { name: get(userName), remaining, avg: 0 });
+	await setDoc(getPlayerDocRef(), { name: get(userName), idx: playerCount, remaining, avg: 0 });
 	console.log('gameID: ' + get(gameID));
 }
 
-export async function hangUp(playerAID: string, playerBID: string, callID: string) {
-	console.log(`deleting call ${callID}...`);
-
-	const callDocRef = getCallDocRef(callID);
-	const candidatesACollRef = collection(callDocRef, playerAID);
-	const candidatesBCollRef = collection(callDocRef, playerBID);
-
-	await deleteCollection(candidatesACollRef);
-	await deleteCollection(candidatesBCollRef);
-	await deleteDoc(callDocRef);
+export async function updateGame(state: 'open' | 'closed' | 'over', turn?: number) {
+	await updateDoc(getGameDocRef(), turn !== undefined ? { state, turn } : { state });
 }
 
-export async function leaveGame(gameID: string, playerID: string) {
-	console.log('leaving game...');
+export async function updatePlayer(remaining: number, throws: number[], avg: number) {
+	await updateDoc(getPlayerDocRef(), { remaining, throws, avg });
+}
 
-	const playerRef = getPlayerDocRef();
+export async function addCandidate(playerID: string, candidate: RTCIceCandidate) {
+	await addDoc(collection(getCallDocRef(get(userID), playerID), 'candidates'), candidate.toJSON());
+}
 
-	// hang up on everyone
-	const callColl = collection(playerRef, 'calls');
-	const querySnapshot = await getDocs(callColl);
-	for (const docSnapshot of querySnapshot.docs) {
-		hangUp(gameID, playerID, docSnapshot.id);
+export async function updateCall(playerID: string, ping: RTCPing) {
+	await setDoc(getCallDocRef(get(userID), playerID), ping);
+}
+
+export async function deleteCall(playerID: string) {
+	await deleteDoc(getCallDocRef(get(userID), playerID));
+}
+
+// realtime database
+
+onAuthStateChanged(auth, (user) => {
+	if (user) {
+		// Fetch the current user's ID from Firebase Authentication.
+		const uid = user.uid;
+
+		// Create a reference to this user's specific status node.
+		// This is where we will store data about being online/offline.
+		const userStatusDatabaseRef = ref(database, uid);
+
+		// Create a reference to the special '.info/connected' path in
+		// Realtime Database. This path returns `true` when connected
+		// and `false` when disconnected.
+		const connectedRef = ref(database, '.info/connected');
+		onValue(connectedRef, (snapshot) => {
+			// If we're not currently connected, don't do anything.
+			if (snapshot.val() == false) {
+				return;
+			}
+
+			// If we are currently connected, then use the 'onDisconnect()'
+			// method to add a set which will only trigger once this
+			// client has disconnected by closing the app,
+			// losing internet, or any other means.
+			onDisconnect(userStatusDatabaseRef)
+				.set('offline')
+				.then(() => {
+					// The promise returned from .onDisconnect().set() will
+					// resolve as soon as the server acknowledges the onDisconnect()
+					// request, NOT once we've actually disconnected:
+					// https://firebase.google.com/docs/reference/js/firebase.database.OnDisconnect
+
+					// We can now safely set ourselves as 'online' knowing that the
+					// server will mark us as offline once we lose connection.
+					set(userStatusDatabaseRef, 'online');
+				});
+		});
 	}
+});
 
-	// delete player doc from game
-	await deleteDoc(playerRef);
+export function onPlayerState(
+	uid: string,
+	callback: (state: 'offline' | 'online') => Promise<void>
+) {
+	const playerStatusRef = ref(database, uid);
 
-	// delete game doc if game is empty
-	const snapshot = await getCountFromServer(getPlayersCollRef());
-	const playerCount = snapshot.data().count;
-	if (playerCount === 0) {
-		await deleteDoc(getGameDocRef());
-	}
-}
-
-export async function addCandidate(callID: string, candidate: RTCIceCandidate) {
-	await addDoc(collection(getCallDocRef(callID), get(userID)), candidate.toJSON());
-}
-
-export async function updateGame(game: Game) {
-	await setDoc(getGameDocRef(), game);
-}
-
-export async function updatePlayerData(playerData: PlayerData) {
-	await setDoc(getPlayerDocRef(), playerData);
-}
-
-export async function updateCall(callID: string, call: Call) {
-	await setDoc(getCallDocRef(callID), call);
+	const unsubscribe = onValue(
+		playerStatusRef,
+		async (snapshot) => {
+			const state = snapshot.val();
+			if (state) {
+				await callback(state);
+			} else {
+				console.log('No status available for player ' + uid);
+			}
+		},
+		(errorObject) => {
+			console.log('The read failed: ' + errorObject.name);
+		}
+	);
+	return unsubscribe;
 }

@@ -145,18 +145,22 @@
 		>
 			T
 		</button>
-		<button class="btn btn-lg rounded-lg variant-filled" disabled={i === 0} on:click={() => i--}>
+		<button
+			class="btn btn-lg rounded-lg variant-filled-secondary mt-3"
+			disabled={i === 0}
+			on:click={() => (darts[i--] = { s: null, x: 1 })}
+		>
 			<ArrowLeftIcon class="min-w-min" />
 		</button>
 		<button
-			class="btn btn-lg rounded-lg variant-filled"
+			class="btn btn-lg rounded-lg variant-filled-secondary mt-3"
 			disabled={i === dartCount - 1 || darts[i].s === null}
 			on:click={() => i++}
 		>
 			<ArrowRightIcon class="min-w-min" />
 		</button>
 		<button
-			class="btn btn-lg rounded-lg variant-filled-success sm:col-start-5"
+			class="btn btn-lg rounded-lg variant-filled-success sm:col-start-5 mt-3"
 			disabled={darts.some((dart) => dart.s === null)}
 			on:click={setDarts}
 		>

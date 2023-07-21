@@ -3,15 +3,13 @@ declare interface Peer {
 	subs: (() => void)[];
 }
 
-declare interface PlayerData {
+declare interface Player {
+	id: string;
+	idx: number;
 	name: string;
 	remaining: number;
-	scores: number[];
+	throws: number[];
 	avg: number;
-}
-
-declare interface Player {
-	data: PlayerData;
 	stream: MediaStream;
 }
 
@@ -19,28 +17,25 @@ declare interface Game {
 	shortId: string;
 	gameMode: '301' | '501';
 	outMode: 'single' | 'double';
-	size: number;
+	size: 1 | 2 | 3 | 4;
 	isOnline: boolean;
-	turn: string;
-	state: 'waiting' | 'playing' | 'over';
+	turn: number;
+	state: 'open' | 'closed' | 'over';
 }
 
-declare interface Call {
-	sender: string;
-	state: string;
-	answer?: {
-		type: RTCSdpType;
-		sdp: string | undefined;
-	};
-	offer?: {
-		type: RTCSdpType;
-		sdp: string | undefined;
-	};
+interface SessionDescription {
+	type: RTCSdpType;
+	sdp: string | undefined;
 }
+
+declare type RTCPing =
+	| { answer: SessionDescription }
+	| { offer: SessionDescription }
+	| { resetMe: boolean };
 
 interface SimpleDart {
 	s:
-		| null // not input
+		| null // no input
 		| 0 // miss
 		| 1
 		| 2

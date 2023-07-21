@@ -35,6 +35,7 @@ You can preview the production build with `npm run preview`.
 
 ## Bugs/Problems
 
+- [x] refreshing the game page crashes it
 - [ ] Check if shortID is free
 - [ ] Redirect to Home 404/50x
 - [ ] preventDefault leaveGame
@@ -44,6 +45,7 @@ You can preview the production build with `npm run preview`.
 
 ## Near Term Features
 
+- [ ] Display importat game settings
 - [ ] Name & Code Input Validation
 - [x] Single input inc index
 - [x] Dartsapp Link Home
