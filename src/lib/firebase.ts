@@ -11,7 +11,9 @@ import {
 	query,
 	where,
 	deleteDoc,
-	updateDoc
+	updateDoc,
+	onSnapshot,
+	type DocumentData
 } from 'firebase/firestore';
 import { getDatabase, ref, set, onValue, onDisconnect } from 'firebase/database';
 
@@ -57,6 +59,45 @@ export async function signIn() {
 	}
 }
 
+onAuthStateChanged(auth, (user) => {
+	if (user) {
+		// Fetch the current user's ID from Firebase Authentication.
+		const uid = user.uid;
+
+		// Create a reference to this user's specific status node.
+		// This is where we will store data about being online/offline.
+		const userStatusDatabaseRef = ref(database, uid);
+
+		// Create a reference to the special '.info/connected' path in
+		// Realtime Database. This path returns `true` when connected
+		// and `false` when disconnected.
+		const connectedRef = ref(database, '.info/connected');
+		onValue(connectedRef, (snapshot) => {
+			// If we're not currently connected, don't do anything.
+			if (snapshot.val() == false) {
+				return;
+			}
+
+			// If we are currently connected, then use the 'onDisconnect()'
+			// method to add a set which will only trigger once this
+			// client has disconnected by closing the app,
+			// losing internet, or any other means.
+			onDisconnect(userStatusDatabaseRef)
+				.set('offline')
+				.then(() => {
+					// The promise returned from .onDisconnect().set() will
+					// resolve as soon as the server acknowledges the onDisconnect()
+					// request, NOT once we've actually disconnected:
+					// https://firebase.google.com/docs/reference/js/firebase.database.OnDisconnect
+
+					// We can now safely set ourselves as 'online' knowing that the
+					// server will mark us as offline once we lose connection.
+					set(userStatusDatabaseRef, 'online');
+				});
+		});
+	}
+});
+
 export async function signOut() {
 	if (auth.currentUser) {
 		try {
@@ -69,27 +110,22 @@ export async function signOut() {
 
 // firestore
 
-export function getGameDocRef() {
+function getGameDocRef() {
 	const gameDocRef = doc(firestore, 'games', get(gameID));
 	return gameDocRef;
 }
 
-export function getPlayersCollRef() {
+function getPlayersCollRef() {
 	const playersCollRef = collection(getGameDocRef(), 'players');
 	return playersCollRef;
 }
 
-export function getOtherPlayersQuery() {
-	const myQuery = query(getPlayersCollRef(), where('__name__', '!=', get(userID)));
-	return myQuery;
-}
-
-export function getPlayerDocRef(playerID = get(userID)) {
+function getPlayerDocRef(playerID = get(userID)) {
 	const playerDocRef = doc(getPlayersCollRef(), playerID);
 	return playerDocRef;
 }
 
-export function getCallDocRef(callerID: string, calleeID: string) {
+function getMessageDocRef(callerID: string, calleeID: string) {
 	const callDocRef = doc(getPlayerDocRef(callerID), 'calls', calleeID);
 	return callDocRef;
 }
@@ -144,58 +180,66 @@ export async function updatePlayer(remaining: number, throws: number[], avg: num
 	await updateDoc(getPlayerDocRef(), { remaining, throws, avg });
 }
 
-export async function addCandidate(playerID: string, candidate: RTCIceCandidate) {
-	await addDoc(collection(getCallDocRef(get(userID), playerID), 'candidates'), candidate.toJSON());
+export async function sendCandidate(playerID: string, candidate: RTCIceCandidate) {
+	await addDoc(collection(getMessageDocRef(get(userID), playerID), 'candidates'), candidate.toJSON());
 }
 
-export async function updateCall(playerID: string, ping: RTCPing) {
-	await setDoc(getCallDocRef(get(userID), playerID), ping);
+export async function sendMessage(playerID: string, message: RTCMessage) {
+	await setDoc(getMessageDocRef(get(userID), playerID), message);
 }
 
-export async function deleteCall(playerID: string) {
-	await deleteDoc(getCallDocRef(get(userID), playerID));
+export async function deleteMessage(playerID: string) {
+	await deleteDoc(getMessageDocRef(get(userID), playerID));
 }
 
-// realtime database
+export function onGameState(callback: (game: Game) => void) {
+	const unsubscribe = onSnapshot(getGameDocRef(), (snapshot) => {
+		const game = snapshot.data() as Game;
+		callback(game);
+	});
 
-onAuthStateChanged(auth, (user) => {
-	if (user) {
-		// Fetch the current user's ID from Firebase Authentication.
-		const uid = user.uid;
+	return unsubscribe;
+}
 
-		// Create a reference to this user's specific status node.
-		// This is where we will store data about being online/offline.
-		const userStatusDatabaseRef = ref(database, uid);
-
-		// Create a reference to the special '.info/connected' path in
-		// Realtime Database. This path returns `true` when connected
-		// and `false` when disconnected.
-		const connectedRef = ref(database, '.info/connected');
-		onValue(connectedRef, (snapshot) => {
-			// If we're not currently connected, don't do anything.
-			if (snapshot.val() == false) {
-				return;
-			}
-
-			// If we are currently connected, then use the 'onDisconnect()'
-			// method to add a set which will only trigger once this
-			// client has disconnected by closing the app,
-			// losing internet, or any other means.
-			onDisconnect(userStatusDatabaseRef)
-				.set('offline')
-				.then(() => {
-					// The promise returned from .onDisconnect().set() will
-					// resolve as soon as the server acknowledges the onDisconnect()
-					// request, NOT once we've actually disconnected:
-					// https://firebase.google.com/docs/reference/js/firebase.database.OnDisconnect
-
-					// We can now safely set ourselves as 'online' knowing that the
-					// server will mark us as offline once we lose connection.
-					set(userStatusDatabaseRef, 'online');
-				});
+export function onPlayersChange(callback: (id: string, type: string, data: DocumentData) => void) {
+	const unsubscribe = onSnapshot(getPlayersCollRef(), (snapshot) => {
+		snapshot.docChanges().forEach((change) => {
+			callback(change.doc.id, change.type, change.doc.data());
 		});
-	}
-});
+	});
+
+	return unsubscribe;
+}
+
+export function onNewCandidate(
+	playerID: string,
+	callback: (candidate: DocumentData) => Promise<void>
+) {
+	const unsubscribe = onSnapshot(
+		collection(getMessageDocRef(playerID, get(userID)), 'candidates'),
+		(snapshot) => {
+			snapshot.docChanges().forEach(async (change) => {
+				if (change.type === 'added') {
+					callback(change.doc.data());
+				}
+			});
+		}
+	);
+
+	return unsubscribe;
+}
+
+export function onNewMessage(playerID: string, callback: (message: DocumentData) => Promise<void>) {
+	const unsubscribe = onSnapshot(getMessageDocRef(playerID, get(userID)), async (snapshot) => {
+		const message = snapshot.data();
+
+		if (!message) return;
+
+		callback(message);
+	});
+
+	return unsubscribe;
+}
 
 export function onPlayerState(
 	uid: string,

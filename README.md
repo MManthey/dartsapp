@@ -38,8 +38,7 @@ You can preview the production build with `npm run preview`.
 - [ ] check if shortID is free
 - [ ] redirect to Home 404/50x
 - [ ] preventDefault leaveGame
-- [ ] handle declined cam/mic permission
-- [ ] Layout on safari (mobile)
+- [x] handle declined cam/mic permission
 
 ## Near Term Features
 

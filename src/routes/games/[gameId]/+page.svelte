@@ -1,22 +1,22 @@
 <script lang="ts">
-	import ScoreInput from '../../../components/ScoreInput.svelte';
-	import Scoreboard from '../../../components/Scoreboard.svelte';
-	import VideoChat from '../../../components/VideoChat.svelte';
+	import Scoreboard from '$lib/components/Scoreboard.svelte';
+	import ScoreInput from '$lib/components/ScoreInput.svelte';
+	import VideoChat from '$lib/components/VideoChat.svelte';
 
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
 	import { userID, gameID } from '$lib/stores';
-	import { onSnapshot, collection } from 'firebase/firestore';
 	import {
-		getGameDocRef,
-		getCallDocRef,
-		addCandidate,
-		updateCall,
-		deleteCall,
+		sendCandidate,
+		sendMessage,
+		deleteMessage,
 		updateGame,
 		updatePlayer,
-		getPlayersCollRef,
 		onPlayerState,
+		onGameState,
+		onPlayersChange,
+		onNewCandidate,
+		onNewMessage,
 		signOut
 	} from '$lib/firebase';
 	import {
@@ -27,8 +27,8 @@
 		LogOutIcon,
 		CopyIcon
 	} from 'svelte-feather-icons';
-	import { Modal, modalStore } from '@skeletonlabs/skeleton';
-	import type { ModalSettings } from '@skeletonlabs/skeleton';
+	import { Modal, modalStore, toastStore } from '@skeletonlabs/skeleton';
+	import type { ModalSettings, ToastSettings } from '@skeletonlabs/skeleton';
 
 	const servers = {
 		iceServers: [
@@ -50,47 +50,65 @@
 	let localStream: MediaStream;
 
 	async function toggleCam() {
-		camOn = !camOn;
-		if (camOn) {
-			const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
-			camStream.getVideoTracks().forEach((track) => {
-				localStream.addTrack(track);
-				for (let { pc } of peers.values()) {
-					pc.addTrack(track);
-				}
-			});
-		} else {
-			localStream.getVideoTracks().forEach((track) => {
-				track.stop();
-				localStream.removeTrack(track);
-				for (let { pc } of peers.values()) {
-					let sender = pc.getSenders().find((s) => s.track === track);
-					sender && pc.removeTrack(sender);
-				}
-			});
+		try {
+			if (!camOn) {
+				const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+				camStream.getVideoTracks().forEach((track) => {
+					localStream.addTrack(track);
+					for (let { pc } of peers.values()) {
+						pc.addTrack(track);
+					}
+				});
+			} else {
+				localStream.getVideoTracks().forEach((track) => {
+					track.stop();
+					localStream.removeTrack(track);
+					for (let { pc } of peers.values()) {
+						let sender = pc.getSenders().find((s) => s.track === track);
+						sender && pc.removeTrack(sender);
+					}
+				});
+			}
+			camOn = !camOn;
+			players[index].stream = localStream; // rerender
+		} catch (error) {
+			console.error(error);
+			const t: ToastSettings = {
+				message: 'Could not access the camera.',
+				background: 'variant-filled-error'
+			};
+			toastStore.trigger(t);
 		}
-		players[index].stream = localStream; // rerender
 	}
 
 	async function toggleMic() {
-		micOn = !micOn;
-		if (micOn) {
-			const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-			micStream.getAudioTracks().forEach((track) => {
-				localStream.addTrack(track);
-				for (let { pc } of peers.values()) {
-					pc.addTrack(track);
-				}
-			});
-		} else {
-			localStream.getAudioTracks().forEach((track) => {
-				track.stop();
-				localStream.removeTrack(track);
-				for (let { pc } of peers.values()) {
-					let sender = pc.getSenders().find((s) => s.track === track);
-					sender && pc.removeTrack(sender);
-				}
-			});
+		try {
+			if (!micOn) {
+				const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+				micStream.getAudioTracks().forEach((track) => {
+					localStream.addTrack(track);
+					for (let { pc } of peers.values()) {
+						pc.addTrack(track);
+					}
+				});
+			} else {
+				localStream.getAudioTracks().forEach((track) => {
+					track.stop();
+					localStream.removeTrack(track);
+					for (let { pc } of peers.values()) {
+						let sender = pc.getSenders().find((s) => s.track === track);
+						sender && pc.removeTrack(sender);
+					}
+				});
+			}
+			micOn = !micOn;
+		} catch (error) {
+			console.error(error);
+			const t: ToastSettings = {
+				message: 'Could not access the microphone.',
+				background: 'variant-filled-error'
+			};
+			toastStore.trigger(t);
 		}
 	}
 
@@ -106,7 +124,7 @@
 
 		// listen to new local candidates -> upload them to the server
 		pc.onicecandidate = async ({ candidate }) => {
-			candidate && (await addCandidate(playerID, candidate));
+			candidate && (await sendCandidate(playerID, candidate));
 		};
 
 		// initiate new negotiation if needed
@@ -120,7 +138,7 @@
 				sdp: offerDescription.sdp,
 				type: offerDescription.type
 			};
-			await updateCall(playerID, { offer });
+			await sendMessage(playerID, { offer });
 		};
 
 		// listen for remote tracks being added
@@ -133,40 +151,15 @@
 			players[idx].stream = remoteStream;
 		};
 
-		// pc.onconnectionstatechange = async () => {
-		// 	console.log('Connection state:', pc.connectionState);
-		// };
-
-		// pc.oniceconnectionstatechange = () => {
-		// 	console.log('ICE connection state:', pc.iceConnectionState);
-		// };
-
-		// pc.onsignalingstatechange = () => {
-		// 	console.log('Signaling state:', pc.signalingState);
-		// };
-
 		// listen for new remote candidates being added
 		subs.push(
-			onSnapshot(collection(getCallDocRef(playerID, $userID), 'candidates'), (snapshot) => {
-				snapshot.docChanges().forEach(async (change) => {
-					if (change.type === 'added') {
-						const candidate = new RTCIceCandidate(change.doc.data());
-						pc.remoteDescription && (await pc.addIceCandidate(candidate));
-					}
-				});
-			})
-		);
-
-		// listen for changes to the call document
-		subs.push(
-			onSnapshot(getCallDocRef(playerID, $userID), async (snapshot) => {
-				const data = snapshot.data();
-
-				if (!data) return;
-
-				if (data.offer) {
+			onNewCandidate(playerID, async (candidate) => {
+				pc.remoteDescription && (await pc.addIceCandidate(new RTCIceCandidate(candidate)));
+			}),
+			onNewMessage(playerID, async (message) => {
+				if ('offer' in message) {
 					// set remote description with incoming offer
-					await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+					await pc.setRemoteDescription(new RTCSessionDescription(message.offer));
 
 					// create answer from offer and set local description
 					const answerDescription = await pc.createAnswer();
@@ -177,13 +170,13 @@
 						type: answerDescription.type,
 						sdp: answerDescription.sdp
 					};
-					await updateCall(playerID, { answer });
-				} else if (data.answer) {
-					pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-					await updateCall(playerID, { resetMe: true });
-					await deleteCall(playerID);
-				} else if (data.resetMe) {
-					await deleteCall(playerID);
+					await sendMessage(playerID, { answer });
+				} else if ('answer' in message) {
+					pc.setRemoteDescription(new RTCSessionDescription(message.answer));
+					await sendMessage(playerID, { resetMe: true });
+					await deleteMessage(playerID);
+				} else if ('resetMe' in message) {
+					await deleteMessage(playerID);
 				}
 			})
 		);
@@ -224,9 +217,8 @@
 		localStream = new MediaStream();
 
 		subscriptions.push(
-			onSnapshot(getGameDocRef(), (snapshot) => {
-				game = snapshot.data() as Game;
-
+			onGameState((newGame) => {
+				game = newGame;
 				if (game?.state === 'over') {
 					const modal: ModalSettings = {
 						type: 'alert',
@@ -235,49 +227,42 @@
 					};
 					modalStore.trigger(modal);
 				}
-			})
-		);
+			}),
+			onPlayersChange((id, type, data) => {
+				const idx = data.idx;
+				const isUser = id === $userID;
+				if (type === 'added') {
+					let stream = new MediaStream();
+					if (!isUser) {
+						subscriptions.push(
+							onPlayerState(id, async (state) => {
+								if (state === 'online') {
+									const { pc, subs } = await setupConnection(id, idx);
+									peers.set(id, { pc, subs });
+								} else {
+									let peer = peers.get(id);
+									let remoteStream = players[idx].stream;
 
-		subscriptions.push(
-			onSnapshot(getPlayersCollRef(), (snapshot) => {
-				snapshot.docChanges().forEach(async (change) => {
-					const data = change.doc.data();
-					const id = change.doc.id;
-					const idx = data.idx;
-					const isUser = id === $userID;
-					if (change.type === 'added') {
-						let stream = new MediaStream();
-						if (!isUser) {
-							subscriptions.push(
-								onPlayerState(id, async (state) => {
-									if (state === 'online') {
-										const { pc, subs } = await setupConnection(id, idx);
-										peers.set(id, { pc, subs });
-									} else {
-										let peer = peers.get(id);
-										let remoteStream = players[idx].stream;
+									peer?.subs.forEach((unsubscribe) => unsubscribe());
+									peer?.pc.close();
 
-										peer?.subs.forEach((unsubscribe) => unsubscribe());
-										peer?.pc.close();
+									remoteStream.getTracks().forEach((track) => {
+										track.stop();
+										remoteStream.removeTrack(track);
+									});
 
-										remoteStream.getTracks().forEach((track) => {
-											track.stop();
-											remoteStream.removeTrack(track);
-										});
-
-										peers.delete(id);
-									}
-								})
-							);
-						} else {
-							index = idx;
-							stream = localStream;
-						}
-						players = [...players, { id, ...data, stream } as Player];
-					} else if (change.type === 'modified') {
-						players[idx] = { ...players[idx], ...data };
+									peers.delete(id);
+								}
+							})
+						);
+					} else {
+						index = idx;
+						stream = localStream;
 					}
-				});
+					players[idx] = { id, ...data, stream } as Player
+				} else if (type === 'modified') {
+					players[idx] = { ...players[idx], ...data };
+				}
 			})
 		);
 	});

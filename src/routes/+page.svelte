@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { userName, gameID } from '$lib/stores';
 	import { signIn, joinGame } from '$lib/firebase';
-	import { Toast, toastStore } from '@skeletonlabs/skeleton';
+	import { toastStore } from '@skeletonlabs/skeleton';
 	import type { ToastSettings } from '@skeletonlabs/skeleton';
 
 	let shortId: string;
@@ -65,4 +65,3 @@
 		</button>
 	</div>
 </div>
-<Toast />

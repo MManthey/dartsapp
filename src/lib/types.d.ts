@@ -28,7 +28,7 @@ interface SessionDescription {
 	sdp: string | undefined;
 }
 
-declare type RTCPing =
+declare type RTCMessage =
 	| { answer: SessionDescription }
 	| { offer: SessionDescription }
 	| { resetMe: boolean };

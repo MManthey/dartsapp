@@ -9,7 +9,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --plugin-search-dir . --check . && eslint .",
-		"format": "prettier --plugin-search-dir . --write ."
+		"format": "prettier --plugin-search-dir . --write .",
+		"generate-assets": "pwa-assets-generator --preset minimal static/Dartsboard.png"
 	},
 	"devDependencies": {
 		"@floating-ui/dom": "^1.4.3",
@@ -20,6 +21,8 @@
 		"@tailwindcss/typography": "^0.5.9",
 		"@typescript-eslint/eslint-plugin": "^5.45.0",
 		"@typescript-eslint/parser": "^5.45.0",
+		"@vite-pwa/assets-generator": "^0.0.4",
+		"@vite-pwa/sveltekit": "^0.2.5",
 		"autoprefixer": "^10.4.14",
 		"eslint": "^8.28.0",
 		"eslint-config-prettier": "^8.5.0",
@@ -37,7 +40,6 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"firebase": "^9.23.0",
-		"peerjs": "^1.4.7"
+		"firebase": "^9.23.0"
 	}
 }
