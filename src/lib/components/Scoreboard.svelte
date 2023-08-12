@@ -16,8 +16,8 @@
 		<thead>
 			<tr>
 				<th>Player</th>
-				<th class="table-cell-fit">Player</th>
-				<th class="table-cell-fit">avg.</th>
+				<th class="table-cell-fit">Points</th>
+				<th class="table-cell-fit">Avg.</th>
 			</tr>
 		</thead>
 		<tbody>
