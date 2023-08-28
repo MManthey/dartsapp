@@ -49,6 +49,10 @@
 	let players: Player[] = [];
 	let localStream: MediaStream;
 
+	/**
+	 * Toggle the state of the camera.
+	 * If the camera is off, it will be turned on, and vice versa.
+	 */
 	async function toggleCam() {
 		try {
 			if (!camOn) {
@@ -81,6 +85,10 @@
 		}
 	}
 
+	/**
+	 * Toggle the state of the microphone.
+	 * If the microphone is off, it will be turned on, and vice versa.
+	 */
 	async function toggleMic() {
 		try {
 			if (!micOn) {
@@ -112,6 +120,11 @@
 		}
 	}
 
+	/**
+	 * Set up a WebRTC connection with a given player.
+	 * @param {string} playerID - The ID of the player to connect to.
+	 * @param {number} idx - The index of the player in the players array.
+	 */
 	async function setupConnection(playerID: string, idx: number) {
 		const remoteStream = new MediaStream();
 		const pc = new RTCPeerConnection(servers);
@@ -184,6 +197,11 @@
 		return { pc, subs };
 	}
 
+	/**
+	 * Handle the end of a player's turn.
+	 * Update the player's state and the game's state based on the darts thrown.
+	 * @param {CustomEvent<Dart[]>} event - Event containing the darts thrown by the player.
+	 */
 	async function endTurn(event: CustomEvent<Dart[]>) {
 		const darts = event.detail;
 		let { remaining, throws, avg } = players[index];
@@ -213,6 +231,9 @@
 		await updateGame(state, turn);
 	}
 
+	/**
+	 * Set up initial event listeners and state when the component is mounted.
+	 */
 	onMount(async () => {
 		localStream = new MediaStream();
 
@@ -259,7 +280,7 @@
 						index = idx;
 						stream = localStream;
 					}
-					players[idx] = { id, ...data, stream } as Player
+					players[idx] = { id, ...data, stream } as Player;
 				} else if (type === 'modified') {
 					players[idx] = { ...players[idx], ...data };
 				}
@@ -267,6 +288,9 @@
 		);
 	});
 
+	/**
+	 * Clean up event listeners and state when the component is destroyed.
+	 */
 	onDestroy(async () => {
 		subscriptions.forEach((unsubscribe) => unsubscribe());
 		for (let { pc, subs } of peers.values()) {

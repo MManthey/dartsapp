@@ -13,6 +13,10 @@
 	let darts: Dart[] = Array.from({ length: dartCount }, () => ({ s: null, x: 1 }));
 	let i = 0;
 
+	/**
+	 * Calculate the remaining score after all throws.
+	 * @returns {number} Remaining score
+	 */
 	function calculateRemaining() {
 		const totalThrown = darts.reduce((total, dart) => {
 			return total + (dart.s || 0) * dart.x;
@@ -120,17 +124,24 @@
 		}
 	}
 
+	/**
+	 * Convert dart to a string representation.
+	 * @param {Dart} dart - The dart to represent.
+	 * @returns {string} String representation of the dart.
+	 */
 	function dartStr(dart: Dart) {
 		const score = dart.s !== null ? dart.s.toString() : 'Bust';
 		const preFix = dart.x === 1 ? '' : dart.x === 2 ? 'D' : 'T';
 		return preFix + score;
 	}
 
+	/** Reset darts to their initial state. */
 	function resetDarts() {
 		darts = Array.from({ length: dartCount }, () => ({ s: null, x: 1 }));
 		i = 0;
 	}
 
+	/** Set darts and update the remaining score. */
 	function setDarts() {
 		dispatch('scoreInput', [...darts]);
 		remaining = calculateRemaining();

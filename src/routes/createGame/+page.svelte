@@ -4,6 +4,16 @@
 	import { gameID } from '$lib/stores';
 	import { RadioGroup, RadioItem, SlideToggle } from '@skeletonlabs/skeleton';
 
+	/**
+	 * Represents the configuration for a game.
+	 * @property {string} shortId - Unique identifier for the game.
+	 * @property {string} gameMode - Mode of the game, e.g. '301'.
+	 * @property {string} outMode - Defines how a player can finish the game.
+	 * @property {number} size - Number of players in the game.
+	 * @property {boolean} isOnline - Whether the game is online.
+	 * @property {number} turn - Whose turn it is in the game.
+	 * @property {string} state - The current state of the game, e.g. 'open'.
+	 */
 	let game: Game = {
 		shortId: generateShortId(6),
 		gameMode: '301',
@@ -14,6 +24,11 @@
 		state: 'open'
 	};
 
+	/**
+	 * Generates a short ID for the game.
+	 * @param {number} length - Length of the ID to be generated.
+	 * @returns {string} - Randomly generated ID.
+	 */
 	function generateShortId(length: number) {
 		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 		let result = '';
@@ -23,6 +38,10 @@
 		return result;
 	}
 
+	/**
+	 * Handles the Create and Join button click.
+	 * Creates the game and then joins the player to it.
+	 */
 	async function handleJoinBtn() {
 		try {
 			await signIn();

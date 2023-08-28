@@ -5,10 +5,21 @@
 	import { toastStore } from '@skeletonlabs/skeleton';
 	import type { ToastSettings } from '@skeletonlabs/skeleton';
 
+	/**
+	 * Game short ID entered by the user.
+	 */
 	let shortId: string;
 
+	/**
+	 * Reactive statement to ensure shortId is in uppercase.
+	 */
 	$: shortId = shortId?.toUpperCase();
 
+	/**
+	 * Handle the Join button click event.
+	 * Signs the user in, joins the game, and navigates to the game page.
+	 * If there are errors, displays a toast with the error message.
+	 */
 	async function handleJoinBtn() {
 		try {
 			await signIn();
@@ -24,6 +35,10 @@
 		}
 	}
 
+	/**
+	 * Handle the Create button click event.
+	 * Navigates the user to the game creation page.
+	 */
 	function handleCreateBtn() {
 		goto('/createGame');
 	}
