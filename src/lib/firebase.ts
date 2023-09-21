@@ -1,6 +1,6 @@
 import { get } from 'svelte/store';
-import { getApps, initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { getApps, initializeApp, FirebaseError } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import {
 	getFirestore,
 	doc,
@@ -51,16 +51,34 @@ const database = getDatabase(app);
  */
 export async function signIn() {
 	if (!auth.currentUser) {
+		console.log('Signing in...');
 		try {
 			await signInAnonymously(auth);
-		} catch (error) {
-			console.error(error);
-			throw new Error('there was an Error signing in...');
-		}
-	}
+			console.log('Singed in successfully...');
+		} catch (error: unknown) {
+			if (error instanceof Error) {
+				// Type guard to narrow type
+				const firebaseError = error as unknown as FirebaseError; // Cast if needed
+				console.error(`Error code: ${firebaseError.code}, Error message: ${firebaseError.message}`);
 
-	if (auth.currentUser) {
-		userID.set(auth.currentUser.uid);
+				let message = 'There was an error signing in...';
+
+				// Check the error code and set a more user-friendly message
+				if (typeof firebaseError.code === 'string') {
+					// additional check
+					switch (firebaseError.code) {
+						case 'auth/network-request-failed':
+							message = 'Unable to connect to the network. Please try again later.';
+							break;
+						case 'auth/operation-not-allowed':
+							message = 'Anonymous sign-in is not allowed. Please contact support.';
+							break;
+						// Add more cases as needed.
+					}
+				}
+				throw new Error(message);
+			}
+		}
 	}
 }
 
@@ -70,39 +88,22 @@ export async function signIn() {
  */
 onAuthStateChanged(auth, (user) => {
 	if (user) {
-		// Fetch the current user's ID from Firebase Authentication.
-		const uid = user.uid;
-
-		// Create a reference to this user's specific status node.
-		// This is where we will store data about being online/offline.
-		const userStatusDatabaseRef = ref(database, uid);
-
-		// Create a reference to the special '.info/connected' path in
-		// Realtime Database. This path returns `true` when connected
-		// and `false` when disconnected.
+		console.log(`userID: ${user.uid}`);
+		const id = user.uid;
+		userID.set(id);
+		const userStatusDatabaseRef = ref(database, id);
 		const connectedRef = ref(database, '.info/connected');
+
 		onValue(connectedRef, (snapshot) => {
-			// If we're not currently connected, don't do anything.
-			if (snapshot.val() == false) {
+			if (snapshot.val() === false) {
 				return;
+			} else {
+				onDisconnect(userStatusDatabaseRef)
+					.set('offline')
+					.then(() => {
+						set(userStatusDatabaseRef, 'online');
+					});
 			}
-
-			// If we are currently connected, then use the 'onDisconnect()'
-			// method to add a set which will only trigger once this
-			// client has disconnected by closing the app,
-			// losing internet, or any other means.
-			onDisconnect(userStatusDatabaseRef)
-				.set('offline')
-				.then(() => {
-					// The promise returned from .onDisconnect().set() will
-					// resolve as soon as the server acknowledges the onDisconnect()
-					// request, NOT once we've actually disconnected:
-					// https://firebase.google.com/docs/reference/js/firebase.database.OnDisconnect
-
-					// We can now safely set ourselves as 'online' knowing that the
-					// server will mark us as offline once we lose connection.
-					set(userStatusDatabaseRef, 'online');
-				});
 		});
 	}
 });
@@ -142,7 +143,7 @@ function getPlayersCollRef() {
  * @param {string} [playerID=get(userID)] - The ID of the player.
  * @return Document reference to a specific player. Defaults to current user if no ID provided.
  */
-function getPlayerDocRef(playerID = get(userID)) {
+function getPlayerDocRef(playerID: string = get(userID)) {
 	const playerDocRef = doc(getPlayersCollRef(), playerID);
 	return playerDocRef;
 }
@@ -158,6 +159,33 @@ function getMessageDocRef(callerID: string, calleeID: string) {
 }
 
 /**
+ * Generates a short ID for the game.
+ * @param {number} length - Length of the ID to be generated.
+ * @returns {string} - Randomly generated ID.
+ */
+export async function generateShortId(): Promise<string> {
+	console.log('Generating shortId...');
+	const length = 6;
+	const maxRetries = 10;
+	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+	for (let retryCount = 0; retryCount < maxRetries; retryCount++) {
+		let shortId = '';
+		for (let i = 0; i < length; i++) {
+			shortId += chars[Math.floor(Math.random() * chars.length)];
+		}
+		const q = query(collection(firestore, 'games'), where('shortId', '==', shortId));
+		const querySnapshot = await getDocs(q);
+
+		if (querySnapshot.empty) {
+			console.log(`shortId: ${shortId}`);
+			return shortId;
+		}
+	}
+	throw new Error('Max retries reached. Could not generate a unique short ID.');
+}
+
+/**
  * Create a new game in Firestore.
  * @param {Game} game - The game object to be created.
  */
@@ -166,9 +194,21 @@ export async function createGame(game: Game) {
 		const gamesCollRef = collection(firestore, 'games');
 		const gameRef = await addDoc(gamesCollRef, game);
 		gameID.set(gameRef.id);
+		console.log(`Created game with gameID: ${get(gameID)}`);
 	} catch (error) {
 		console.error(error);
 		throw new Error('could not create game...');
+	}
+}
+
+/**
+ *
+ */
+export async function deleteGame() {
+	try {
+		await deleteDoc(getGameDocRef());
+	} catch (err: unknown) {
+		console.error(err);
 	}
 }
 
@@ -199,31 +239,45 @@ export async function joinGame(shortId: string) {
 	}
 
 	if (playerCount === game.size - 1) {
-		updateGame('closed');
+		updateGame({ ...game, state: 'closed' });
 	}
 
 	const remaining = game.gameMode;
 
-	await setDoc(getPlayerDocRef(), { name: get(userName), idx: playerCount, remaining, avg: 0 });
+	await setDoc(getPlayerDocRef(), {
+		name: get(userName),
+		idx: playerCount,
+		remaining,
+		avg: 0,
+		sets: 0,
+		legs: 0
+	});
 }
 
 /**
- * Update the state (and optionally the turn) of a game.
- * @param {'open' | 'closed' | 'over'} state - The new state of the game.
- * @param {number} [turn] - The turn number.
+ *
+ * @param game
  */
-export async function updateGame(state: 'open' | 'closed' | 'over', turn?: number) {
-	await updateDoc(getGameDocRef(), turn !== undefined ? { state, turn } : { state });
+export async function updateGame(game: Game) {
+	await updateDoc(getGameDocRef(), { ...game });
 }
 
 /**
- * Update a player's information.
- * @param {number} remaining - The remaining attempts.
- * @param {number[]} throws - The throws array.
- * @param {number} avg - The average score.
+ *
+ * @param player
+ * @param playerID
  */
-export async function updatePlayer(remaining: number, throws: number[], avg: number) {
-	await updateDoc(getPlayerDocRef(), { remaining, throws, avg });
+export async function updatePlayer(player: Player, playerID: string = get(userID)) {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	const { stream, id, ...playerWithoutStreamAndId } = player;
+	await updateDoc(getPlayerDocRef(playerID), playerWithoutStreamAndId);
+}
+
+/**
+ *
+ */
+export async function deletePlayer() {
+	await deleteDoc(getPlayerDocRef());
 }
 
 /**
@@ -232,7 +286,10 @@ export async function updatePlayer(remaining: number, throws: number[], avg: num
  * @param {RTCIceCandidate} candidate - The RTC candidate to send.
  */
 export async function sendCandidate(playerID: string, candidate: RTCIceCandidate) {
-	await addDoc(collection(getMessageDocRef(get(userID), playerID), 'candidates'), candidate.toJSON());
+	await addDoc(
+		collection(getMessageDocRef(get(userID), playerID), 'candidates'),
+		candidate.toJSON()
+	);
 }
 
 /**

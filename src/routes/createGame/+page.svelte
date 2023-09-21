@@ -1,56 +1,70 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { signIn, createGame, joinGame } from '$lib/firebase';
-	import { gameID } from '$lib/stores';
-	import { RadioGroup, RadioItem, SlideToggle } from '@skeletonlabs/skeleton';
+	import { signIn, createGame, joinGame, generateShortId } from '$lib/firebase';
+	import { userName, gameID, game, players } from '$lib/stores';
+	import {
+		RadioGroup,
+		RadioItem,
+		SlideToggle,
+		RangeSlider,
+		ProgressRadial
+	} from '@skeletonlabs/skeleton';
+	import { errorToast, successToast } from '$lib/toast';
 
-	/**
-	 * Represents the configuration for a game.
-	 * @property {string} shortId - Unique identifier for the game.
-	 * @property {string} gameMode - Mode of the game, e.g. '301'.
-	 * @property {string} outMode - Defines how a player can finish the game.
-	 * @property {number} size - Number of players in the game.
-	 * @property {boolean} isOnline - Whether the game is online.
-	 * @property {number} turn - Whose turn it is in the game.
-	 * @property {string} state - The current state of the game, e.g. 'open'.
-	 */
-	let game: Game = {
-		shortId: generateShortId(6),
+	let gameForm: Game = {
 		gameMode: '301',
 		outMode: 'single',
+		legs: 1,
+		sets: 1,
 		size: 1,
-		isOnline: false,
 		turn: 0,
 		state: 'open'
 	};
+	let onlineGame = true;
+	let playerNames: string[] = [];
+	let isLoading = false;
 
-	/**
-	 * Generates a short ID for the game.
-	 * @param {number} length - Length of the ID to be generated.
-	 * @returns {string} - Randomly generated ID.
-	 */
-	function generateShortId(length: number) {
-		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-		let result = '';
-		for (let i = 0; i < length; i++) {
-			result += chars[Math.floor(Math.random() * chars.length)];
-		}
-		return result;
-	}
+	$: if (!onlineGame) playerNames.length = gameForm.size - 1;
 
 	/**
 	 * Handles the Create and Join button click.
 	 * Creates the game and then joins the player to it.
 	 */
 	async function handleJoinBtn() {
+		isLoading = true;
 		try {
-			await signIn();
-			await createGame(game);
-			await joinGame(game.shortId);
-			goto(`/games/${$gameID}`);
-		} catch (error) {
-			console.error(error);
-			alert(error);
+			if (!onlineGame || gameForm.size === 1) {
+				gameForm.state = 'closed';
+				$players = [];
+				for (let idx = 0; idx < gameForm.size; idx++) {
+					$players = [
+						...$players,
+						{
+							idx,
+							name: idx === 0 ? $userName : playerNames[idx - 1],
+							remaining: Number(gameForm.gameMode),
+							throws: [],
+							avg: 0,
+							sets: 0,
+							legs: 0
+						}
+					];
+				}
+				$game = gameForm;
+				goto(`/games/offline`);
+			} else {
+				$game = gameForm;
+				await signIn();
+				$game.shortId = await generateShortId();
+				await createGame($game);
+				await joinGame($game.shortId);
+				goto(`/games/${$gameID}`);
+				successToast('Game joined.');
+			}
+		} catch (err: any) {
+			errorToast(err.message);
+		} finally {
+			isLoading = false;
 		}
 	}
 </script>
@@ -60,7 +74,7 @@
 	<div class="mb-6">
 		<label class="block font-bold">
 			<div>Game Mode</div>
-			<select class="select w-full mt-2 rounded-lg" bind:value={game.gameMode}>
+			<select class="select w-full mt-2 rounded-lg" bind:value={gameForm.gameMode}>
 				<option value="301">301</option>
 				<option value="501">501</option>
 			</select>
@@ -69,31 +83,70 @@
 	<div class="mb-6">
 		<div class="font-bold text-md">Out Mode</div>
 		<RadioGroup class="grid grid-cols-2 mt-2" rounded="rounded-lg">
-			<RadioItem bind:group={game.outMode} name="single" value="single">Single</RadioItem>
-			<RadioItem bind:group={game.outMode} name="double" value="double">Double</RadioItem>
+			<RadioItem bind:group={gameForm.outMode} name="single" value="single">Single</RadioItem>
+			<RadioItem bind:group={gameForm.outMode} name="double" value="double">Double</RadioItem>
 		</RadioGroup>
+	</div>
+	<div class="mb-6">
+		<RangeSlider name="range-slider" bind:value={gameForm.legs} min={1} max={5} ticked>
+			<div class="font-bold text-md">
+				First to {gameForm.legs}
+				{gameForm.legs > 1 ? 'Legs' : 'Leg'}
+			</div>
+		</RangeSlider>
+	</div>
+	<div class="mb-6">
+		<RangeSlider name="range-slider" bind:value={gameForm.sets} min={1} max={5} ticked>
+			<div class="font-bold text-md">
+				First to {gameForm.sets}
+				{gameForm.sets > 1 ? 'Sets' : 'Set'}
+			</div>
+		</RangeSlider>
 	</div>
 	<div class="mb-6">
 		<div class="font-bold text-md">Players</div>
 		<RadioGroup class="grid grid-cols-4 mt-2" rounded="rounded-lg">
-			<RadioItem bind:group={game.size} name="one" value={1}>1</RadioItem>
-			<RadioItem bind:group={game.size} name="two" value={2}>2</RadioItem>
-			<RadioItem bind:group={game.size} name="three" value={3}>3</RadioItem>
-			<RadioItem bind:group={game.size} name="four" value={4}>4</RadioItem>
+			<RadioItem bind:group={gameForm.size} name="one" value={1}>1</RadioItem>
+			<RadioItem bind:group={gameForm.size} name="two" value={2}>2</RadioItem>
+			<RadioItem bind:group={gameForm.size} name="three" value={3}>3</RadioItem>
+			<RadioItem bind:group={gameForm.size} name="four" value={4}>4</RadioItem>
 		</RadioGroup>
 	</div>
-	<!-- {#if game.size > 1}
-		<div class="mb-8">
-			<SlideToggle name="slide" bind:checked={game.isOnline} size="sm">
-				<span class="text-md font-bold">Online Game</span></SlideToggle
-			>
+	{#if gameForm.size > 1}
+		<div class="mb-6">
+			<SlideToggle name="slide" bind:checked={onlineGame} size="sm">
+				<span class="text-md font-bold">{onlineGame ? 'Online' : 'Offline'} Game</span>
+			</SlideToggle>
 		</div>
-	{/if} -->
+		{#if !onlineGame}
+			<div class="mb-6">
+				<div class="font-bold text-md">Names</div>
+				{#each { length: gameForm.size - 1 } as _, i}
+					<input
+						class="input w-full p-2 rounded-lg mt-2"
+						type="text"
+						name="player-{i + 2}-name"
+						autocomplete="on"
+						placeholder="Player {i + 2}"
+						bind:value={playerNames[i]}
+					/>
+				{/each}
+			</div>
+		{/if}
+	{/if}
+
 	<div>
 		<button
 			class="btn variant-filled w-full py-2 px-4 mt-6 rounded-lg"
 			type="button"
-			on:click={handleJoinBtn}>Create and Join</button
+			disabled={isLoading}
+			on:click={handleJoinBtn}
 		>
+			{#if isLoading}
+				<ProgressRadial stroke={120} width="w-6" />
+			{:else}
+				Create and Join
+			{/if}
+		</button>
 	</div>
 </div>

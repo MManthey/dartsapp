@@ -4,21 +4,24 @@ declare interface Peer {
 }
 
 declare interface Player {
-	id: string;
+	id?: string;
 	idx: number;
 	name: string;
 	remaining: number;
 	throws: number[];
 	avg: number;
-	stream: MediaStream;
+	sets: number;
+	legs: number;
+	stream?: MediaStream;
 }
 
 declare interface Game {
-	shortId: string;
+	shortId?: string;
 	gameMode: '301' | '501';
 	outMode: 'single' | 'double';
+	sets: number,
+	legs: number,
 	size: 1 | 2 | 3 | 4;
-	isOnline: boolean;
 	turn: number;
 	state: 'open' | 'closed' | 'over';
 }

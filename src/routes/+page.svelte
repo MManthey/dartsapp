@@ -2,13 +2,15 @@
 	import { goto } from '$app/navigation';
 	import { userName, gameID } from '$lib/stores';
 	import { signIn, joinGame } from '$lib/firebase';
-	import { toastStore } from '@skeletonlabs/skeleton';
-	import type { ToastSettings } from '@skeletonlabs/skeleton';
+	import { ProgressRadial } from '@skeletonlabs/skeleton';
+	import { errorToast } from '$lib/toast';
 
 	/**
 	 * Game short ID entered by the user.
 	 */
 	let shortId: string;
+
+	let isLoading = false;
 
 	/**
 	 * Reactive statement to ensure shortId is in uppercase.
@@ -21,17 +23,15 @@
 	 * If there are errors, displays a toast with the error message.
 	 */
 	async function handleJoinBtn() {
+		isLoading = true;
 		try {
 			await signIn();
 			await joinGame(shortId);
 			goto(`/games/${$gameID}`);
-		} catch (error: any) {
-			const t: ToastSettings = {
-				message: error.message,
-				// Provide any utility or variant background style:
-				background: 'variant-filled-error'
-			};
-			toastStore.trigger(t);
+		} catch (err: any) {
+			errorToast(err.message);
+		} finally {
+			isLoading = false;
 		}
 	}
 
@@ -73,10 +73,14 @@
 		<button
 			class="btn variant-filled w-full py-2 px-4 rounded-lg"
 			type="button"
-			disabled={!$userName || !shortId}
+			disabled={!$userName || !shortId || isLoading}
 			on:click={handleJoinBtn}
 		>
-			Join
+			{#if isLoading}
+				<ProgressRadial stroke={120} width="w-6" />
+			{:else}
+				Join
+			{/if}
 		</button>
 	</div>
 </div>

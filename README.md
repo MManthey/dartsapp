@@ -33,30 +33,16 @@ You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
 
-## Bugs/Problems
+## Bugs/Problems/Fixes
 
 - [ ] check if shortID is free
 - [ ] redirect to Home 404/50x
 - [ ] preventDefault leaveGame
-- [x] handle declined cam/mic permission
+- [ ] Name input validation
 
-## Near Term Features
+## TODO's
 
-- [ ] Display importat game settings
-- [ ] Name & Code Input Validation
-- [ ] Scroll to input on turn
-- [ ] Focus on player on turn
-- [ ] Sets/Legs
+- [ ] Display game settings ingame
+- [ ] Game Setting: Sets/Legs
 - [ ] Game Mode: Cricket
-- [ ] Avatars
 - [ ] Offline Mode
-
-## Long Term Features
-
-- [ ] Save Games
-- [ ] Game Modes for Training
-- [ ] Stats & Graphs
-- [ ] Social Media Share (Results)
-- [ ] Voice Input
-- [ ] Achievments
-- [ ] Screenshots
