@@ -1,10 +1,25 @@
 <script lang="ts">
-	import Scoreboard from '$lib/components/Scoreboard.svelte';
-	import ScoreInput from '$lib/components/ScoreInput.svelte';
-	import VideoChat from '$lib/components/VideoChat.svelte';
-
+	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { onMount, onDestroy } from 'svelte';
+	import {
+		modalStore,
+		ProgressRadial,
+		RadioGroup,
+		RadioItem,
+		Ratings
+	} from '@skeletonlabs/skeleton';
+	import type { ModalSettings, ModalComponent } from '@skeletonlabs/skeleton';
+	import type { DocumentData } from 'firebase/firestore';
+	import {
+		CameraIcon,
+		CameraOffIcon,
+		MicIcon,
+		MicOffIcon,
+		LogOutIcon,
+		CopyIcon
+	} from 'svelte-feather-icons';
+
+	import { errorToast, successToast } from '$lib/toast';
 	import { userID, gameID, game, players } from '$lib/stores';
 	import {
 		sendCandidate,
@@ -17,45 +32,49 @@
 		onPlayersChange,
 		onNewCandidate,
 		onNewMessage,
-		signOut,
 		deletePlayer,
 		deleteGame
 	} from '$lib/firebase';
-	import {
-		CameraIcon,
-		CameraOffIcon,
-		MicIcon,
-		MicOffIcon,
-		LogOutIcon,
-		CopyIcon
-	} from 'svelte-feather-icons';
-	import { Modal, modalStore } from '@skeletonlabs/skeleton';
-	import type { ModalSettings } from '@skeletonlabs/skeleton';
-	import { errorToast, successToast } from '$lib/toast';
+	import { dartStr } from '$lib/util';
 
-	const servers = {
-		iceServers: [
-			{
-				urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']
-				// turn server ??? -> https://www.metered.ca/tools/openrelay/
-			}
-		],
-		iceCandidatePoolSize: 10
-	};
+	import Scoreboard from '$lib/components/Scoreboard.svelte';
+	import ScoreInput from '$lib/components/ScoreInput.svelte';
+	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
+	import DartSVG from '$lib/components/DartSVG.svelte';
+	import WinnerModal from '$lib/components/WinnerModal.svelte';
+
 	const subscriptions: (() => void)[] = [];
+	const playerStateSubs: Map<string, () => void> = new Map();
 
 	let index: number;
 	let camOn = false;
+	let camLoading = false;
 	let micOn = false;
+	let micLoading = false;
+	let leaveLoading = false;
 	let peers: Map<string, Peer> = new Map();
-	let localStream: MediaStream;
+	let streams: Map<string, MediaStream> = new Map();;
+	let onTurnPlayerId: string;
+
+	let offTurnPlayers: Player[];
+	let mode = 'chat';
+
+	$: if ($game && $players[$game.turnIdx]?.id !== onTurnPlayerId) {
+		onTurnPlayerId = $players[$game.turnIdx].id || '';
+	}
+
 
 	/**
 	 * Toggle the state of the camera.
 	 * If the camera is off, it will be turned on, and vice versa.
 	 */
-	async function toggleCam() {
+	async function handleCamBtn() {
 		try {
+			const localStream = streams.get($userID);
+			if (!localStream) return;
+
+			console.log(`Toggling camera ${camOn ? 'off' : 'on'}.`);
+			camLoading = true;
 			if (!camOn) {
 				const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
 				camStream.getVideoTracks().forEach((track) => {
@@ -75,19 +94,27 @@
 				});
 			}
 			camOn = !camOn;
-			$players[index].stream = localStream; // rerender
-		} catch (err) {
-			console.error(err);
-			errorToast('Could not access the camera.');
+			streams = streams.set($userID, localStream);
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : 'Unknown error while toggling the camera.';
+			console.error(msg);
+			errorToast(msg);
+		} finally {
+			camLoading = false;
 		}
 	}
 
 	/**
-	 * Toggle the state of the microphone.
-	 * If the microphone is off, it will be turned on, and vice versa.
+	 *
 	 */
-	async function toggleMic() {
+	async function handleMicBtn() {
+		micLoading = true;
 		try {
+			const localStream = streams.get($userID);
+			if (!localStream) return;
+
+			console.log(`Toggling microphone ${micOn ? 'off' : 'on'}.`);
+			micLoading = true;
 			if (!micOn) {
 				const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 				micStream.getAudioTracks().forEach((track) => {
@@ -107,61 +134,79 @@
 				});
 			}
 			micOn = !micOn;
-		} catch (err) {
-			console.error(err);
-			errorToast('Could not access the microphone.');
+		} catch (err: unknown) {
+			const msg =
+				err instanceof Error ? err.message : 'Unknown error while toggling the microphone.';
+			console.error(msg);
+			errorToast(msg);
+		} finally {
+			micLoading = false;
 		}
 	}
 
 	/**
 	 *
 	 */
-	async function leaveGame() {
-		// $game must be set
-		if (!$game) return;
+	async function handleLeaveBtn() {
+		leaveLoading = true;
+		try {
+			console.log('Leaving game.');
+			if (!$game) {
+				throw new Error('Game was undefined before leaving game.');
+			}
 
-		await cleanup();
+			cleanup();
 
-		switch ($game.state) {
-			case 'open':
+			if ($game.state !== 'over') {
 				if ($players.length === 1) {
 					await deleteGame();
-				}
-				await deletePlayer();
-				break;
-			case 'closed':
-				const newSize = $game.size - 1;
-				const turn = $game.turn === index && index === $game.size - 1 ? 0 : index;
-				await deletePlayer();
-				if (newSize > 0) {
-					const size = newSize as 1 | 2 | 3 | 4;
-					await updateGame({ ...$game, size, turn });
 				} else {
-					await deleteGame();
+					const turnIdx =
+						$game.turnIdx === $game.size - 1 || $game.state === 'open' ? 0 : $game.turnIdx;
+					await deletePlayer();
+					const size = ($players.length - 1) as 1 | 2 | 3 | 4;
+					await updateGame({ ...$game, size, turnIdx });
+					for (let i = index + 1; i < $players.length; i++) {
+						await updatePlayer({ ...$players[i], idx: i - 1 }, $players[i].id);
+					}
 				}
-				for (let i = index + 1; i < $players.length; i++) {
-					await updatePlayer({ ...$players[i], idx: i - 1 });
-				}
-				break;
-			case 'over':
-				break;
+			}
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : 'Unknown error while leaving game.';
+			console.error(msg);
+			errorToast(msg);
+		} finally {
+			$game = null;
+			$gameID = '';
+			$players = [];
+			leaveLoading = false;
+			goto('/');
 		}
-
-		goto('/');
-
-		$gameID = '';
-		$game = null;
-		$players = [];
 	}
 
 	/**
-	 * Set up a WebRTC connection with a given player.
-	 * @param {string} playerID - The ID of the player to connect to.
-	 * @param {number} idx - The index of the player in the players array.
+	 *
+	 * @param playerID
+	 * @param stream
 	 */
-	async function setupConnection(playerID: string, idx: number) {
-		const remoteStream = new MediaStream();
+	function connect(id: string) {
+		const localStream = streams.get($userID);
+		if (!localStream) return;
+
+		console.log(`Connecting to ${id}.`);
+
+		const servers = {
+			iceServers: [
+				{
+					urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']
+					// turn server ??? -> https://www.metered.ca/tools/openrelay/
+				}
+			],
+			iceCandidatePoolSize: 10
+		};
+
 		const pc = new RTCPeerConnection(servers);
+		const remoteStream = new MediaStream();
 		const subs: (() => void)[] = [];
 
 		// add any initial tracks to the pc
@@ -171,7 +216,7 @@
 
 		// listen to new local candidates -> upload them to the server
 		pc.onicecandidate = async ({ candidate }) => {
-			candidate && (await sendCandidate(playerID, candidate));
+			candidate && (await sendCandidate(id, candidate));
 		};
 
 		// initiate new negotiation if needed
@@ -185,25 +230,27 @@
 				sdp: offerDescription.sdp,
 				type: offerDescription.type
 			};
-			await sendMessage(playerID, { offer });
+			await sendMessage(id, { offer });
 		};
 
 		// listen for remote tracks being added
 		pc.ontrack = ({ track }) => {
+			const peer = peers.get(id);
+			if (!peer) return;
 			track.onmute = () => {
 				remoteStream.removeTrack(track);
-				$players[idx].stream = remoteStream; // rerender
+				streams = streams.set(id, remoteStream); // rerender
 			};
 			remoteStream.addTrack(track);
-			$players[idx].stream = remoteStream;
+			streams = streams.set(id, remoteStream); // rerender
 		};
 
 		// listen for new remote candidates being added
 		subs.push(
-			onNewCandidate(playerID, async (candidate) => {
+			onNewCandidate(id, async (candidate) => {
 				pc.remoteDescription && (await pc.addIceCandidate(new RTCIceCandidate(candidate)));
 			}),
-			onNewMessage(playerID, async (message) => {
+			onNewMessage(id, async (message) => {
 				if ('offer' in message) {
 					// set remote description with incoming offer
 					await pc.setRemoteDescription(new RTCSessionDescription(message.offer));
@@ -217,97 +264,43 @@
 						type: answerDescription.type,
 						sdp: answerDescription.sdp
 					};
-					await sendMessage(playerID, { answer });
+					await sendMessage(id, { answer });
 				} else if ('answer' in message) {
 					pc.setRemoteDescription(new RTCSessionDescription(message.answer));
-					await sendMessage(playerID, { resetMe: true });
-					await deleteMessage(playerID);
+					await sendMessage(id, { resetMe: true });
+					await deleteMessage(id);
 				} else if ('resetMe' in message) {
-					await deleteMessage(playerID);
+					await deleteMessage(id);
 				}
 			})
 		);
 
-		return { pc, subs };
+		streams = streams.set(id, remoteStream);
+		peers = peers.set(id, { pc, subs });
 	}
 
 	/**
-	 * Handle the end of a player's turn.
-	 * Update the player's state and the game's state based on the darts thrown.
-	 * @param {CustomEvent<Dart[]>} event - Event containing the darts thrown by the player.
+	 *
+	 * @param id
+	 * @param idx
+	 * @param stream
 	 */
-	async function endTurn(event: CustomEvent<Dart[]>) {
-		// $game must be set
-		if (!$game) return;
+	function disconnect(id: string) {
+		const peer = peers.get(id);
+		peer?.pc.close();
+		peer?.subs.forEach((unsubscribe) => unsubscribe());
+		peers.delete(id);
 
-		const darts = event.detail;
-		let { remaining, throws, avg, legs, sets } = $players[index];
-
-		let points = darts.reduce((total, dart) => {
-			return total + (dart.s || 0) * dart.x;
-		}, 0);
-
-		const doubles = darts.filter((darts) => darts.s !== 0 && darts.x === 2);
-		const bust = points > remaining;
-		const pointsFit = points === remaining;
-		const brokeDoubles = pointsFit && $game.outMode === 'double' && !doubles.pop();
-
-		points = bust || brokeDoubles ? 0 : points;
-
-		remaining = remaining - points;
-		throws = throws ? [...throws, points] : [points];
-		avg = throws.reduce((a, b) => a + b, 0) / throws.length;
-
-		// was leg won? -> increment player legs, reset points
-		const legWon = remaining === 0;
-		if (legWon) {
-			legs += 1;
-			// was set won? -> increment player sets, reset legs and points
-			const setWon = legs === $game.legs;
-			if (setWon) {
-				sets += 1;
-				await updatePlayer({ ...$players[index], sets });
-				for (let i = 0; i < $game.size; i++) {
-					await updatePlayer(
-						{
-							...$players[i],
-							legs: 0,
-							remaining: Number($game.gameMode),
-							throws: [],
-							avg: 0
-						},
-						$players[i].id
-					);
-				}
-			} else {
-				await updatePlayer({ ...$players[index], legs });
-				for (let i = 0; i < $game.size; i++) {
-					await updatePlayer(
-						{
-							...$players[i],
-							remaining: Number($game.gameMode),
-							throws: [],
-							avg: 0
-						},
-						$players[i].id
-					);
-				}
-			}
-		} else {
-			await updatePlayer({ ...$players[index], remaining, throws, avg });
-		}
-
-		// was game won? -> end the game
-		const gameWon = sets === $game.sets;
-
-		const turn = legWon || $game.size === 1 ? 0 : gameWon ? $game.turn : (index + 1) % $game.size;
-		const state = gameWon ? 'over' : $game.state;
-
-		await updateGame({ ...$game, state, turn });
+		const stream = streams.get(id);
+		stream?.getTracks().forEach((track) => {
+			track.stop();
+			stream.removeTrack(track);
+		});
+		streams.delete(id);
 	}
 
 	/**
-	 * Copies the shortId of the game to the clipboard.
+	 *
 	 */
 	async function copyShortId() {
 		// $game must be set
@@ -326,140 +319,404 @@
 	/**
 	 *
 	 */
-	async function cleanup() {
+	function cleanup() {
 		subscriptions.forEach((unsubscribe) => unsubscribe());
-		for (let { pc, subs } of peers.values()) {
-			subs.forEach((unsubscribe) => unsubscribe());
-			localStream.getTracks().forEach((track) => {
-				let sender = pc.getSenders().find((s) => s.track === track);
-				sender && pc.removeTrack(sender);
+
+		for (let stream of streams.values()) {
+			stream.getTracks().forEach((track) => {
+				track.stop();
+				stream.removeTrack(track);
 			});
-			pc.close();
 		}
 
-		for (let { stream } of $players) {
-			stream?.getTracks().forEach((track) => {
-				track.stop();
-				stream?.removeTrack(track);
-			});
+		for (let { pc, subs } of peers.values()) {
+			pc.close();
+			subs.forEach((unsubscribe) => unsubscribe());
 		}
-		// await signOut();
+
+		for (let playerStateSub of playerStateSubs.values()) {
+			playerStateSub();
+		}
 	}
 
 	/**
-	 * Set up initial event listeners and state when the component is mounted.
+	 * This should not check for the game state as it will be updated after the turn.
+	 * @param newTurnIdx
 	 */
+	function onNewTurn(newTurnIdx: number) {
+		if (!$game) return;
+		console.log(`newTurnIdx: ${newTurnIdx}`);
+		const oldPlayer = $players[$game.turnIdx];
+		successToast(`${oldPlayer.name} scored ${oldPlayer.scores.slice(-1)}.`);
+		$game.turnIdx = newTurnIdx;
+		mode = newTurnIdx === index ? 'score' : 'chat';
+		onTurnPlayerId = $players[newTurnIdx].id || '';
+		offTurnPlayers = $players.filter((p) => p.idx !== $game?.turnIdx);
+	}
+
+	/**
+	 *
+	 * @param newState
+	 */
+	function onNewState(newState: 'open' | 'closed' | 'over') {
+		if (!$game) return;
+		console.log(`newState: ${newState}`);
+		if (newState === 'closed' && $game?.turnIdx === index) {
+			mode = 'score';
+		} else if (newState === 'over') {
+			const modalComponent: ModalComponent = {
+				// Pass a reference to your custom component
+				ref: WinnerModal,
+				// Add the component properties as key/value pairs
+				props: { background: 'bg-primary-500' },
+				// Provide a template literal for the default component slot
+				slot: `<p><span class="text-primary-900 text-5xl">${$players[$game?.turnIdx || 0]?.name}</span></br> has won the match!</p>`
+			};
+			const modal: ModalSettings = {
+				type: 'component',
+				// Pass the component directly:
+				component: modalComponent
+			};
+			modalStore.trigger(modal);
+		}
+		$game.state = newState;
+	}
+
+	/**
+	 *
+	 * @param id
+	 * @param idx
+	 * @param data
+	 * @param initialLoad
+	 */
+	function onPlayerJoin(id: string, idx: number, data: DocumentData, initialLoad: boolean) {
+		const isUser = id === $userID;
+		const player = { id, ...data } as Player;
+		console.log(`${player.name} is joining.`);
+
+		if (!isUser) {
+			playerStateSubs.set(
+				id,
+				onPlayerState(id, async (state) => {
+					if (state === 'online') {
+						connect(id);
+					} else {
+						disconnect(id);
+					}
+				})
+			);
+		} else {
+			index = idx;
+		}
+
+		$players[idx] = player as Player;
+		offTurnPlayers = $players.filter((p) => p.idx !== $game?.turnIdx);
+
+		if (initialLoad && !isUser) {
+			successToast(`${player.name} joined the game.`);
+		}
+	}
+
+	/**
+	 *
+	 * @param idx
+	 */
+	function onPlayerChange(idx: number, data: DocumentData) {
+		const oldPlayer = $players[idx];
+		const newPlayer = { ...oldPlayer, ...data };
+		console.log(`${newPlayer.name} is changing.`);
+		$players[idx] = newPlayer;
+	}
+
+	/**
+	 *
+	 * @param id
+	 * @param idx
+	 */
+	function onPlayerLeave(id: string, idx: number) {
+		const player = $players[idx];
+		const peer = peers.get(id);
+
+		if (!player || !peer) return;
+
+		console.log(`${player.name} is leaving.`);
+
+		if (index > idx) index--;
+
+		const {pc, subs} = peer;
+		pc.close();
+		subs.forEach((unsubscribe) => unsubscribe());
+		peers.delete(id);
+
+		const remoteStream = streams.get(id);
+		remoteStream?.getTracks().forEach((track) => {
+			track.stop();
+			remoteStream.removeTrack(track);
+		})
+
+		const playerStateSub = playerStateSubs.get(id);
+		playerStateSub && playerStateSub();
+		playerStateSubs.delete(id);
+
+		$players = $players.filter((p) => p.idx !== idx);
+		offTurnPlayers = $players.filter((p) => p.idx !== $game?.turnIdx);
+		errorToast(`${player.name} left the game.`);
+	}
+
 	onMount(async () => {
-		localStream = new MediaStream();
+		streams = streams.set($userID, new MediaStream());
+		let initialLoad = false;
 		subscriptions.push(
 			onGameState((newGame) => {
-				$game = newGame;
-				if ($game?.state === 'over') {
-					const modal: ModalSettings = {
-						type: 'alert',
-						title: 'We have a winner!',
-						body: `Congratulations to ${$players[$game.turn].name}!`
-					};
-					modalStore.trigger(modal);
+				if (newGame) {
+					if (!$game) {
+						$game = { ...newGame };
+					} else {
+						if (newGame.size !== $game.size) {
+							$game.size = newGame.size;
+						}
+						if (newGame.turnIdx !== $game.turnIdx) {
+							onNewTurn(newGame.turnIdx);
+						}
+						if (newGame.state !== $game.state) {
+							onNewState(newGame.state);
+						}
+					}
 				}
 			}),
 			onPlayersChange((id, type, data) => {
+				console.log(data);
 				const idx = data.idx;
-				const isUser = id === $userID;
 				if (type === 'added') {
-					let stream = new MediaStream();
-					if (!isUser) {
-						subscriptions.push(
-							onPlayerState(id, async (state) => {
-								if (state === 'online') {
-									const { pc, subs } = await setupConnection(id, idx);
-									peers.set(id, { pc, subs });
-								} else {
-									let peer = peers.get(id);
-									let remoteStream = $players[idx].stream;
-
-									peer?.subs.forEach((unsubscribe) => unsubscribe());
-									peer?.pc.close();
-
-									// needs video rerendering
-									remoteStream?.getTracks().forEach((track) => {
-										track.stop();
-										remoteStream?.removeTrack(track);
-									});
-
-									peers.delete(id);
-								}
-							})
-						);
-					} else {
-						index = idx;
-						stream = localStream;
-					}
-					$players[idx] = { id, ...data, stream } as Player;
+					onPlayerJoin(id, idx, data, initialLoad);
 				} else if (type === 'modified') {
-					$players[idx] = { ...$players[idx], ...data };
+					onPlayerChange(idx, data);
 				} else if (type === 'removed') {
-					let peer = peers.get(id);
-					let remoteStream = $players[idx].stream;
-
-					peer?.subs.forEach((unsubscribe) => unsubscribe());
-					peer?.pc.close();
-
-					// needs video rerendering
-					remoteStream?.getTracks().forEach((track) => {
-						track.stop();
-						remoteStream?.removeTrack(track);
-					});
-
-					peers.delete(id);
-					$players = $players.filter((player) => player.idx !== idx);
+					onPlayerLeave(id, idx);
 				}
+				initialLoad = true;
 			})
 		);
 	});
 
-	/**
-	 * Clean up event listeners and state when the component is destroyed.
-	 */
-	onDestroy(async () => {
-		await cleanup();
-	});
+	onDestroy(() => {cleanup()});
 </script>
 
-<div class="flex flex-col gap-12 items-center">
-	{#if $game?.state === 'open'}
-		<button class="btn btn-xl variant-ghost rounded-lg" on:click={copyShortId}>
-			#{$game.shortId}
-			<CopyIcon class="ml-5" />
-		</button>
-	{/if}
-	<VideoChat players={$players} />
-	{#if $game?.state === 'closed' && $game.turn === index}
-		<ScoreInput
-			on:scoreInput={endTurn}
-			outMode={$game.outMode}
-			remaining={$players[index].remaining || Number($game.gameMode)}
-		/>
-	{/if}
-	<Scoreboard game={$game} players={$players} />
-	<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
-		<button
-			class="btn-icon btn-icon-xl {!camOn ? 'variant-filled-error' : 'variant-filled-secondary'}"
-			type="button"
-			on:click={toggleCam}
-		>
-			{#if !camOn}<CameraOffIcon /> {:else} <CameraIcon />{/if}
-		</button>
-		<button
-			class="btn-icon btn-icon-xl {!micOn ? 'variant-filled-error' : 'variant-filled-secondary'}"
-			type="button"
-			on:click={toggleMic}
-		>
-			{#if !micOn}<MicOffIcon /> {:else} <MicIcon />{/if}
-		</button>
-		<button class="btn-icon btn-icon-xl variant-filled-error" type="button" on:click={leaveGame}>
-			<LogOutIcon />
-		</button>
+{#if $game && $players.length}
+	<div class="flex flex-col gap-12 items-center">
+		{#if $game.state === 'open'}
+			<button class="btn btn-xl variant-ghost-primary" on:click={copyShortId}>
+				#{$game.shortId}
+				<CopyIcon class="ml-5" />
+			</button>
+		{/if}
+		<RadioGroup class="grid grid-cols-3 mt-2 w-full" active="variant-filled-primary">
+			<RadioItem
+				bind:group={mode}
+				name="chat"
+				value="chat"
+			>
+				Chat
+			</RadioItem>
+			<RadioItem bind:group={mode} name="score" value="score">Score</RadioItem>
+			<RadioItem
+				bind:group={mode}
+				name="table"
+				value="table"
+			>
+				Table
+			</RadioItem>
+		</RadioGroup>
+		<div class="relative w-full">
+			{#if mode === 'chat'}
+				<div class="absolute w-full">
+					<div class="rounded-lg overflow-hidden flex flex-col">
+						<!-- Uppder Area: Camera or Dummy/Profile Picture -->
+						<div class="aspect-[4/3]">
+							<VideoPlayer stream={streams.get(onTurnPlayerId)} />
+						</div>
+						<!-- Lower Area: Thrown Darts, Name, Legs & Sets, Remaining, Outmode -->
+						<div
+							class="w-full bg-primary-500 py-4 px-6 flex flex-col justify-between text-white gap-3"
+						>
+							<!-- Thrown Darts -->
+							<div class="grid grid-cols-3 gap-4">
+								{#each $players[$game.turnIdx].darts as dart, idx}
+									<div
+										class="rounded-lg h-9 flex justify-center items-center py-1 {idx ===
+										$players[$game.turnIdx].dartIdx
+											? 'bg-white border-primary-800 border-2 text-primary-800'
+											: 'bg-primary-800 border-primary-800 border-2 text-white'}"
+									>
+										{#if dart.s === null}
+											<DartSVG fill={idx === $players[$game.turnIdx].dartIdx ? '#16805c' : 'white'} />
+										{:else}
+											<span>{dartStr($players[$game.turnIdx].darts[idx])}</span>
+										{/if}
+									</div>
+								{/each}
+							</div>
+							<!-- Name, Legs & Sets, Remaining, Outmode -->
+							<div class="flex flex-row justify-around">
+								<!-- Name, Legs & Sets -->
+								<div class="flex flex-col gap-2">
+									<h3 class="h3">{$players[$game.turnIdx].name}</h3>
+									<div class="flex flex-row gap-2 justify-start items-center">
+										<div class="w-10 text-primary-800">Legs</div>
+										<Ratings
+											bind:value={$players[$game.turnIdx].legs}
+											max={$game?.legs}
+											fill="fill-white"
+										>
+											<svelte:fragment slot="full">
+												<svg
+													class="w-5 md:w-5 lg:w-5 aspect-square"
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 512 512"
+													><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
+												</svg>
+											</svelte:fragment>
+											<svelte:fragment slot="half">
+												<svg
+													class="w-5 md:w-5 lg:w-5 aspect-square"
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 512 512"
+													><path
+														d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+													/>
+												</svg>
+											</svelte:fragment>
+											<svelte:fragment slot="empty">
+												<svg
+													class="w-5 md:w-5 lg:w-5 aspect-square"
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 512 512"
+												>
+													<path
+														d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+													/>
+												</svg>
+											</svelte:fragment>
+										</Ratings>
+									</div>
+									<div class="flex flex-row gap-2 justify-start items-center">
+										<div class="w-10 text-primary-800">Sets</div>
+										<Ratings
+											bind:value={$players[$game.turnIdx].sets}
+											max={$game?.sets}
+											fill="fill-white"
+										>
+											<svelte:fragment slot="full">
+												<svg
+													class="w-5 md:w-5 lg:w-5 aspect-square"
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 512 512"
+													><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
+												</svg>
+											</svelte:fragment>
+											<svelte:fragment slot="half">
+												<svg
+													class="w-5 md:w-5 lg:w-5 aspect-square"
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 512 512"
+													><path
+														d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+													/>
+												</svg>
+											</svelte:fragment>
+											<svelte:fragment slot="empty">
+												<svg
+													class="w-5 md:w-5 lg:w-5 aspect-square"
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 512 512"
+												>
+													<path
+														d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+													/>
+												</svg>
+											</svelte:fragment>
+										</Ratings>
+									</div>
+								</div>
+								<!-- Remaining, Outmode -->
+								<div class="flex flex-col justify-center">
+									<div class="text-primary-800">{$game?.outMode} out</div>
+									<div class="text-6xl">{$players[$game.turnIdx].remaining}</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="grid grid-cols-3 gap-4 mt-4">
+						{#each [...offTurnPlayers] as { name, remaining, id }}
+							<div
+								class="relative aspect-square rounded-lg overflow-hidden bg-[url('/dummy.png')] bg-cover"
+							>
+								<VideoPlayer stream={streams.get(id || '')} />
+								<div
+									class="w-full container variant-filled absolute bottom-0 flex flex-row justify-between items-center py-1 px-2 bg-surface-500"
+								>
+									<div>{name}</div>
+									<div>{remaining}</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+					<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
+						<button
+							class="btn-icon btn-icon-xl {!camOn
+								? 'variant-filled-error'
+								: 'variant-filled-secondary'}"
+							type="button"
+							disabled={camLoading}
+							on:click={handleCamBtn}
+						>
+							{#if camLoading}
+								<ProgressRadial />
+							{:else if !camOn}
+								<CameraOffIcon />
+							{:else}
+								<CameraIcon />
+							{/if}
+						</button>
+						<button
+							class="btn-icon btn-icon-xl {!micOn
+								? 'variant-filled-error'
+								: 'variant-filled-secondary'}"
+							type="button"
+							disabled={micLoading}
+							on:click={handleMicBtn}
+						>
+							{#if micLoading}
+								<ProgressRadial />
+							{:else if !micOn}
+								<MicOffIcon />
+							{:else}
+								<MicIcon />
+							{/if}
+						</button>
+						<button
+							class="btn-icon btn-icon-xl variant-filled-error"
+							type="button"
+							disabled={leaveLoading}
+							on:click={handleLeaveBtn}
+						>
+							{#if leaveLoading}
+								<ProgressRadial />
+							{:else}
+								<LogOutIcon />
+							{/if}
+						</button>
+					</div>
+				</div>
+			{:else if mode === 'score'}
+				<div class="absolute w-full">
+					<ScoreInput {index} />
+				</div>
+			{:else}
+				<div class="absolute w-full">
+					<Scoreboard game={$game} players={$players} />
+				</div>
+			{/if}
+		</div>
 	</div>
-</div>
-<Modal />
+{/if}

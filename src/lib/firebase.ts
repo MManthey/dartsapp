@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { getApps, initializeApp, FirebaseError } from 'firebase/app';
+import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import {
 	getFirestore,
@@ -13,10 +13,18 @@ import {
 	deleteDoc,
 	updateDoc,
 	onSnapshot,
-	type DocumentData
+	type DocumentData,
+	serverTimestamp as firestoreServerTimestamp
 } from 'firebase/firestore';
-import { getDatabase, ref, set, onValue, onDisconnect } from 'firebase/database';
-import { gameID, userID, userName } from '$lib/stores.js';
+import {
+	getDatabase,
+	ref,
+	set,
+	onValue,
+	onDisconnect,
+	serverTimestamp as databaseServerTimestamp
+} from 'firebase/database';
+import { isOnline, gameID, userID, userName } from '$lib/stores.js';
 
 // Firebase Configuration is fetched from environment variables
 const firebaseConfig = {
@@ -30,13 +38,8 @@ const firebaseConfig = {
 	measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initializing the Firebase application if not already initialized
-let app;
-if (!getApps().length) {
-	app = initializeApp(firebaseConfig);
-} else {
-	app = getApps()[0]; // get the already initialized app
-}
+// Initializing the Firebase application
+const app = initializeApp(firebaseConfig);
 
 // Creating references to Firebase services: Authentication, Firestore and Realtime Database
 const auth = getAuth();
@@ -51,34 +54,7 @@ const database = getDatabase(app);
  */
 export async function signIn() {
 	if (!auth.currentUser) {
-		console.log('Signing in...');
-		try {
-			await signInAnonymously(auth);
-			console.log('Singed in successfully...');
-		} catch (error: unknown) {
-			if (error instanceof Error) {
-				// Type guard to narrow type
-				const firebaseError = error as unknown as FirebaseError; // Cast if needed
-				console.error(`Error code: ${firebaseError.code}, Error message: ${firebaseError.message}`);
-
-				let message = 'There was an error signing in...';
-
-				// Check the error code and set a more user-friendly message
-				if (typeof firebaseError.code === 'string') {
-					// additional check
-					switch (firebaseError.code) {
-						case 'auth/network-request-failed':
-							message = 'Unable to connect to the network. Please try again later.';
-							break;
-						case 'auth/operation-not-allowed':
-							message = 'Anonymous sign-in is not allowed. Please contact support.';
-							break;
-						// Add more cases as needed.
-					}
-				}
-				throw new Error(message);
-			}
-		}
+		await signInAnonymously(auth);
 	}
 }
 
@@ -88,22 +64,48 @@ export async function signIn() {
  */
 onAuthStateChanged(auth, (user) => {
 	if (user) {
-		console.log(`userID: ${user.uid}`);
 		const id = user.uid;
 		userID.set(id);
-		const userStatusDatabaseRef = ref(database, id);
+
+		const userStatusDatabaseRef = ref(database, '/status/' + id);
+		const userStatusFirestoreRef = doc(firestore, '/status/' + id);
+
+		const isOfflineForDatabase = {
+			state: 'offline',
+			last_changed: databaseServerTimestamp()
+		};
+
+		const isOnlineForDatabase = {
+			state: 'online',
+			last_changed: databaseServerTimestamp()
+		};
+
+		const isOfflineForFirestore = {
+			state: 'offline',
+			last_changed: firestoreServerTimestamp()
+		};
+
+		const isOnlineForFirestore = {
+			state: 'online',
+			last_changed: firestoreServerTimestamp()
+		};
+
 		const connectedRef = ref(database, '.info/connected');
 
 		onValue(connectedRef, (snapshot) => {
 			if (snapshot.val() === false) {
+				isOnline.set(false);
+				setDoc(userStatusFirestoreRef, isOfflineForFirestore);
 				return;
-			} else {
-				onDisconnect(userStatusDatabaseRef)
-					.set('offline')
-					.then(() => {
-						set(userStatusDatabaseRef, 'online');
-					});
 			}
+
+			onDisconnect(userStatusDatabaseRef)
+				.set(isOfflineForDatabase)
+				.then(() => {
+					isOnline.set(true);
+					set(userStatusDatabaseRef, isOnlineForDatabase);
+					setDoc(userStatusFirestoreRef, isOnlineForFirestore);
+				});
 		});
 	}
 });
@@ -113,58 +115,52 @@ onAuthStateChanged(auth, (user) => {
  */
 export async function signOut() {
 	if (auth.currentUser) {
-		try {
-			await auth.signOut();
-		} catch (error) {
-			throw new Error('there was an Error signing out...');
-		}
+		await auth.signOut();
 	}
 }
 
 // Firestore utility methods
 
 /**
- * @return Document reference to the game.
+ *
+ * @returns
  */
 function getGameDocRef() {
-	const gameDocRef = doc(firestore, 'games', get(gameID));
-	return gameDocRef;
+	return doc(firestore, 'games', get(gameID));
 }
 
 /**
- * @return Collection reference to players under a game.
+ *
+ * @returns
  */
 function getPlayersCollRef() {
-	const playersCollRef = collection(getGameDocRef(), 'players');
-	return playersCollRef;
+	return collection(getGameDocRef(), 'players');
 }
 
 /**
- * @param {string} [playerID=get(userID)] - The ID of the player.
- * @return Document reference to a specific player. Defaults to current user if no ID provided.
+ *
+ * @param playerID
+ * @returns
  */
 function getPlayerDocRef(playerID: string = get(userID)) {
-	const playerDocRef = doc(getPlayersCollRef(), playerID);
-	return playerDocRef;
+	return doc(getPlayersCollRef(), playerID);
 }
 
 /**
- * @param {string} callerID - ID of the caller.
- * @param {string} calleeID - ID of the callee.
- * @return Document reference for the message between caller and callee.
+ *
+ * @param callerID
+ * @param calleeID
+ * @returns
  */
 function getMessageDocRef(callerID: string, calleeID: string) {
-	const callDocRef = doc(getPlayerDocRef(callerID), 'calls', calleeID);
-	return callDocRef;
+	return doc(getPlayerDocRef(callerID), 'calls', calleeID);
 }
 
 /**
- * Generates a short ID for the game.
- * @param {number} length - Length of the ID to be generated.
- * @returns {string} - Randomly generated ID.
+ *
+ * @returns
  */
-export async function generateShortId(): Promise<string> {
-	console.log('Generating shortId...');
+export async function generateShortId() {
 	const length = 6;
 	const maxRetries = 10;
 	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -178,38 +174,27 @@ export async function generateShortId(): Promise<string> {
 		const querySnapshot = await getDocs(q);
 
 		if (querySnapshot.empty) {
-			console.log(`shortId: ${shortId}`);
 			return shortId;
 		}
 	}
-	throw new Error('Max retries reached. Could not generate a unique short ID.');
+	throw new Error(`Could not create shortId in ${maxRetries} tries.`);
 }
 
 /**
- * Create a new game in Firestore.
- * @param {Game} game - The game object to be created.
+ *
+ * @param game
  */
 export async function createGame(game: Game) {
-	try {
-		const gamesCollRef = collection(firestore, 'games');
-		const gameRef = await addDoc(gamesCollRef, game);
-		gameID.set(gameRef.id);
-		console.log(`Created game with gameID: ${get(gameID)}`);
-	} catch (error) {
-		console.error(error);
-		throw new Error('could not create game...');
-	}
+	const gamesCollRef = collection(firestore, 'games');
+	const gameRef = await addDoc(gamesCollRef, game);
+	gameID.set(gameRef.id);
 }
 
 /**
  *
  */
 export async function deleteGame() {
-	try {
-		await deleteDoc(getGameDocRef());
-	} catch (err: unknown) {
-		console.error(err);
-	}
+	await deleteDoc(getGameDocRef());
 }
 
 /**
@@ -218,19 +203,20 @@ export async function deleteGame() {
  */
 export async function joinGame(shortId: string) {
 	const q = query(collection(firestore, 'games'), where('shortId', '==', shortId));
-
 	const querySnapshot = await getDocs(q);
 
 	if (querySnapshot.empty) {
 		throw new Error('Game does not exist!');
 	} else if (querySnapshot.size > 1) {
-		throw new Error('Collision!');
+		throw new Error('There are multiple games with the same shortId!');
 	}
 	const gameSnap = querySnapshot.docs[0];
 	gameID.set(gameSnap.id);
 	const game = gameSnap.data() as Game;
 
 	const playersCollRef = getPlayersCollRef();
+	if (!playersCollRef) return;
+
 	const playersCollSnap = await getDocs(playersCollRef);
 	const playerCount = playersCollSnap.size;
 
@@ -239,15 +225,24 @@ export async function joinGame(shortId: string) {
 	}
 
 	if (playerCount === game.size - 1) {
-		updateGame({ ...game, state: 'closed' });
+		await updateGame({ ...game, state: 'closed' });
 	}
 
 	const remaining = game.gameMode;
 
-	await setDoc(getPlayerDocRef(), {
+	const playerDocRef = getPlayerDocRef();
+	if (!playerDocRef) return;
+
+	await setDoc(playerDocRef, {
 		name: get(userName),
 		idx: playerCount,
 		remaining,
+		darts: [
+			{ s: null, x: 1 },
+			{ s: null, x: 1 },
+			{ s: null, x: 1 }
+		],
+		dartIdx: 0,
 		avg: 0,
 		sets: 0,
 		legs: 0
@@ -268,9 +263,11 @@ export async function updateGame(game: Game) {
  * @param playerID
  */
 export async function updatePlayer(player: Player, playerID: string = get(userID)) {
+	console.log('Updating player.');
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const { stream, id, ...playerWithoutStreamAndId } = player;
-	await updateDoc(getPlayerDocRef(playerID), playerWithoutStreamAndId);
+	const { stream, id, ...playerWithoutIdAndStream } = player;
+	const playerDocRef = getPlayerDocRef(playerID);
+	await updateDoc(playerDocRef, playerWithoutIdAndStream);
 }
 
 /**
@@ -281,52 +278,51 @@ export async function deletePlayer() {
 }
 
 /**
- * Send an RTC candidate to another player.
- * @param {string} playerID - The ID of the other player.
- * @param {RTCIceCandidate} candidate - The RTC candidate to send.
+ *
+ * @param playerID
+ * @param candidate
  */
 export async function sendCandidate(playerID: string, candidate: RTCIceCandidate) {
-	await addDoc(
-		collection(getMessageDocRef(get(userID), playerID), 'candidates'),
-		candidate.toJSON()
-	);
+	const messageDocRef = getMessageDocRef(get(userID), playerID);
+	await addDoc(collection(messageDocRef, 'candidates'), candidate.toJSON());
 }
 
 /**
- * Send an RTC message to another player.
- * @param {string} playerID - The ID of the other player.
- * @param {RTCMessage} message - The RTC message to send.
+ *
+ * @param playerID
+ * @param message
  */
 export async function sendMessage(playerID: string, message: RTCMessage) {
-	await setDoc(getMessageDocRef(get(userID), playerID), message);
+	const messageDocRef = getMessageDocRef(get(userID), playerID);
+	await setDoc(messageDocRef, message);
 }
 
 /**
- * Delete an RTC message.
- * @param {string} playerID - The ID of the other player.
+ *
+ * @param playerID
  */
 export async function deleteMessage(playerID: string) {
-	await deleteDoc(getMessageDocRef(get(userID), playerID));
+	const messageDocRef = getMessageDocRef(get(userID), playerID);
+	await deleteDoc(messageDocRef);
 }
 
 /**
- * Subscribe to game state changes.
- * @param {function(Game):void} callback - The callback to be invoked with the game data.
- * @return Function to unsubscribe from game state changes.
+ *
+ * @param callback
+ * @returns
  */
 export function onGameState(callback: (game: Game) => void) {
 	const unsubscribe = onSnapshot(getGameDocRef(), (snapshot) => {
 		const game = snapshot.data() as Game;
 		callback(game);
 	});
-
 	return unsubscribe;
 }
 
 /**
- * Subscribe to changes in the players collection.
- * @param {function(string, string, DocumentData):void} callback - The callback to be invoked with the changes.
- * @return Function to unsubscribe from players collection changes.
+ *
+ * @param callback
+ * @returns
  */
 export function onPlayersChange(callback: (id: string, type: string, data: DocumentData) => void) {
 	const unsubscribe = onSnapshot(getPlayersCollRef(), (snapshot) => {
@@ -339,72 +335,63 @@ export function onPlayersChange(callback: (id: string, type: string, data: Docum
 }
 
 /**
- * Subscribe to new RTC candidates from a specific player.
- * @param {string} playerID - The ID of the other player.
- * @param {function(DocumentData):Promise<void>} callback - The callback to be invoked with the candidate.
- * @return Function to unsubscribe from new candidates.
+ *
+ * @param playerID
+ * @param callback
+ * @returns
  */
 export function onNewCandidate(
 	playerID: string,
 	callback: (candidate: DocumentData) => Promise<void>
 ) {
-	const unsubscribe = onSnapshot(
-		collection(getMessageDocRef(playerID, get(userID)), 'candidates'),
-		(snapshot) => {
-			snapshot.docChanges().forEach(async (change) => {
-				if (change.type === 'added') {
-					callback(change.doc.data());
-				}
-			});
-		}
-	);
-
+	const messageDocRef = getMessageDocRef(playerID, get(userID));
+	const candidatesCollRef = collection(messageDocRef, 'candidates');
+	const unsubscribe = onSnapshot(candidatesCollRef, (snapshot) => {
+		snapshot.docChanges().forEach(async (change) => {
+			if (change.type === 'added') {
+				await callback(change.doc.data());
+			}
+		});
+	});
 	return unsubscribe;
 }
 
 /**
- * Subscribe to new RTC messages from a specific player.
- * @param {string} playerID - The ID of the other player.
- * @param {function(DocumentData):Promise<void>} callback - The callback to be invoked with the message.
- * @return Function to unsubscribe from new messages.
+ *
+ * @param playerID
+ * @param callback
+ * @returns
  */
 export function onNewMessage(playerID: string, callback: (message: DocumentData) => Promise<void>) {
-	const unsubscribe = onSnapshot(getMessageDocRef(playerID, get(userID)), async (snapshot) => {
+	const messageDocRef = getMessageDocRef(playerID, get(userID));
+	const unsubscribe = onSnapshot(messageDocRef, async (snapshot) => {
 		const message = snapshot.data();
-
 		if (!message) return;
-
-		callback(message);
+		await callback(message);
 	});
 
 	return unsubscribe;
 }
 
 /**
- * Monitor the online/offline status of a specific player in the realtime database.
- * @param {string} uid - The UID of the player.
- * @param {function('offline' | 'online'):Promise<void>} callback - The callback to be invoked with the player's state.
- * @return Function to unsubscribe from the player's state changes.
+ *
+ * @param uid
+ * @param callback
+ * @returns
  */
 export function onPlayerState(
 	uid: string,
 	callback: (state: 'offline' | 'online') => Promise<void>
 ) {
-	const playerStatusRef = ref(database, uid);
-
-	const unsubscribe = onValue(
-		playerStatusRef,
-		async (snapshot) => {
-			const state = snapshot.val();
+	const userStatusFirestoreRef = doc(firestore, '/status/' + uid);
+	const unsubscribe = onSnapshot(userStatusFirestoreRef, async (snapshot) => {
+		if (snapshot.exists()) {
+			const data = snapshot.data();
+			const state = data?.state;
 			if (state) {
 				await callback(state);
-			} else {
-				console.log('No status available for player ' + uid);
 			}
-		},
-		(errorObject) => {
-			console.log('The read failed: ' + errorObject.name);
 		}
-	);
+	});
 	return unsubscribe;
 }

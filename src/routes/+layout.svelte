@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Toast, LightSwitch } from '@skeletonlabs/skeleton';
+	import { Toast, Modal, LightSwitch } from '@skeletonlabs/skeleton';
 
 	// The ordering of these imports is critical to your app working properly
 	import '@skeletonlabs/skeleton/themes/theme-skeleton.css';
@@ -9,18 +9,26 @@
 	import '../app.postcss';
 </script>
 
-<div class="flex justify-between items-center px-10 py-6">
-	<a href="/">
-		<h2 class="h2 font-bold flex items-center">
-			Dartsapp
-			<span class="ml-2 badge variant-filled-warning"> Beta </span>
-		</h2>
-	</a>
-	<LightSwitch />
+<div class="bg-primary-500 flex justify-end items-center px-6 py-3 relative">
+	<div class="flex-1 flex justify-start">
+		<img class="w-24" src="/dartsappHeader.svg" alt="Dartsapp Header" />
+	</div>
+	<div
+		class="w-20 h-20 bg-primary-500 rounded-full absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 flex items-center justify-center"
+	>
+		<img class="w-16 h-16" src="/dartsappIcon.svg" alt="Dartsapp Icon" />
+	</div>
+	<div class="flex-1 flex justify-end">
+		<LightSwitch />
+	</div>
 </div>
+
 <main class="min-h-screen">
-	<div class="container max-w-lg mx-auto px-10 my-6">
+	<div class="container max-w-lg mx-auto px-10 my-20">
 		<slot />
-		<Toast />
+		<Toast max={1} />
+		<Modal
+			padding="p-0"
+		/>
 	</div>
 </main>

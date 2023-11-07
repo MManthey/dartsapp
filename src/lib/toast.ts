@@ -4,6 +4,8 @@ import type { ToastSettings } from '@skeletonlabs/skeleton';
 export function warnToast(message: string) {
 	const t: ToastSettings = {
 		message: message,
+		timeout: 3000,
+		hoverable: true,
 		background: 'variant-filled-warning'
 	};
 	toastStore.trigger(t);
@@ -21,6 +23,8 @@ export function errorToast(message: string) {
 export function successToast(message: string) {
 	const t: ToastSettings = {
 		message: message,
+		timeout: 3000,
+		hoverable: true,
 		background: 'variant-filled-success'
 	};
 	toastStore.trigger(t);

@@ -5,7 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { game, players } from '$lib/stores';
 	import { LogOutIcon } from 'svelte-feather-icons';
-	import { Modal, modalStore } from '@skeletonlabs/skeleton';
+	import { modalStore } from '@skeletonlabs/skeleton';
 	import type { ModalSettings } from '@skeletonlabs/skeleton';
 
 	/**
@@ -18,29 +18,29 @@
 		if (!$game) return;
 
 		const darts = event.detail;
-		const index = $game.turn;
-		let { remaining, throws, avg, legs, sets } = $players[index];
+		const index = $game.turnIdx;
+		let { remaining, scores, avg, legs, sets } = $players[index];
 
-		let points = darts.reduce((total, dart) => {
+		let score = darts.reduce((total, dart) => {
 			return total + (dart.s || 0) * dart.x;
 		}, 0);
 
 		const doubles = darts.filter((darts) => darts.s !== 0 && darts.x === 2);
-		const bust = points > remaining;
-		const pointsFit = points === remaining;
+		const bust = score > remaining;
+		const pointsFit = score === remaining;
 		const brokeDoubles = pointsFit && $game?.outMode === 'double' && !doubles.pop();
 
-		points = bust || brokeDoubles ? 0 : points;
+		score = bust || brokeDoubles ? 0 : score;
 
-		remaining = remaining - points;
-		throws = throws ? [...throws, points] : [points];
-		avg = throws.reduce((a, b) => a + b, 0) / throws.length;
+		remaining = remaining - score;
+		scores = scores ? [...scores, score] : [score];
+		avg = scores.reduce((a, b) => a + b, 0) / scores.length;
 
-		// was leg won? -> increment player legs, reset points
+		// was leg won? -> increment player legs, reset score
 		const legWon = remaining === 0;
 		if (legWon) {
 			legs += 1;
-			// was set won? -> increment player sets, reset legs and points
+			// was set won? -> increment player sets, reset legs and score
 			const setWon = legs === $game.legs;
 			if (setWon) {
 				sets += 1;
@@ -50,33 +50,34 @@
 						...$players[i],
 						legs: 0,
 						remaining: Number($game.gameMode),
-						throws: [],
+						scores: [],
 						avg: 0
 					};
 				}
 			} else {
 				$players[index] = { ...$players[index], legs };
 				for (let i = 0; i < $game.size; i++) {
-					$players[i] = { ...$players[i], remaining: Number($game.gameMode), throws: [], avg: 0 };
+					$players[i] = { ...$players[i], remaining: Number($game.gameMode), scores: [], avg: 0 };
 				}
 			}
 		} else {
-			$players[index] = { ...$players[index], remaining, throws, avg };
+			$players[index] = { ...$players[index], remaining, scores, avg };
 		}
 
 		// was game won? -> end the game
 		const gameWon = sets === $game.sets;
 
-		const turn = legWon || $game.size === 1 ? 0 : gameWon ? $game.turn : (index + 1) % $game.size;
+		const turnIdx =
+			legWon || $game.size === 1 ? 0 : gameWon ? $game.turnIdx : (index + 1) % $game.size;
 		const state = gameWon ? 'over' : $game.state;
 
-		$game = { ...$game, state, turn };
+		$game = { ...$game, state, turnIdx };
 
 		if (gameWon) {
 			const modal: ModalSettings = {
 				type: 'alert',
 				title: 'We have a winner!',
-				body: `Congratulations to ${$players[$game.turn].name}!`
+				body: `Congratulations to ${$players[$game.turnIdx].name}!`
 			};
 			modalStore.trigger(modal);
 		}
@@ -85,11 +86,7 @@
 
 <div class="flex flex-col gap-12 items-center">
 	{#if $game?.state === 'closed'}
-		<ScoreInput
-			on:scoreInput={endTurn}
-			outMode={$game.outMode}
-			remaining={$players[$game.turn].remaining || Number($game.gameMode)}
-		/>
+		<ScoreInput index={$game.turnIdx} />
 	{/if}
 	<Scoreboard game={$game} players={$players} />
 	<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
@@ -106,4 +103,3 @@
 		</button>
 	</div>
 </div>
-<Modal />

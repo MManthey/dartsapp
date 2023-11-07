@@ -8,11 +8,12 @@ declare interface Player {
 	idx: number;
 	name: string;
 	remaining: number;
-	throws: number[];
+	darts: [Dart, Dart, Dart];
+	dartIdx: number;
+	scores: number[];
 	avg: number;
 	sets: number;
 	legs: number;
-	stream?: MediaStream;
 }
 
 declare interface Game {
@@ -22,7 +23,7 @@ declare interface Game {
 	sets: number,
 	legs: number,
 	size: 1 | 2 | 3 | 4;
-	turn: number;
+	turnIdx: number;
 	state: 'open' | 'closed' | 'over';
 }
 

@@ -1,24 +1,22 @@
 <script lang="ts">
-	import { MicOffIcon } from 'svelte-feather-icons';
+	export let stream: MediaStream | undefined;
 
-	export let name: string;
-	export let stream: MediaStream;
-	export let muted: boolean;
-
-	let videoElement: any;
-	let hasAudio = false;
+	let videoElement: HTMLVideoElement;
 
 	$: {
 		if (videoElement) {
-			videoElement.srcObject = stream;
-			hasAudio = stream?.getAudioTracks().length === 0;
+			if (stream instanceof MediaStream) {
+				videoElement.srcObject = stream;
+			} else {
+				videoElement.srcObject = null;
+			}
 		}
 	}
 </script>
 
-<div class="relative aspect-square rounded-lg overflow-hidden bg-[url('/dummy.png')] bg-cover">
-	<video class="h-full w-full object-cover" autoplay playsinline bind:this={videoElement} {muted} />
-	<span class="chip variant-filled absolute bottom-3 right-3">
-		{name}{#if hasAudio && !muted}<MicOffIcon class="ml-1" size="12" />{/if}
-	</span>
+<div class="w-full h-full bg-[url('/dummy.png')] bg-cover">
+	<!-- svelte-ignore a11y-media-has-caption -->
+	{#if stream}
+		<video class="h-full w-full object-cover" autoplay playsinline bind:this={videoElement} />
+	{/if}
 </div>

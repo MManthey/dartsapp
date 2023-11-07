@@ -1,61 +1,65 @@
 <script lang="ts">
-	import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from 'svelte-feather-icons';
-	import { createEventDispatcher } from 'svelte';
+	import { CheckIcon, ChevronLeftIcon, ChevronRightIcon } from 'svelte-feather-icons';
+	import { ProgressRadial, Ratings } from '@skeletonlabs/skeleton';
 
-	export let outMode: string;
-	export let remaining: number;
+	import { isOnline, game, players } from '$lib/stores';
+	import { updatePlayer, updateGame } from '$lib/firebase';
+	import { dartStr, dartTotal } from '$lib/util';
+	import { errorToast } from '$lib/toast';
 
-	const dispatch = createEventDispatcher();
+	import DartSVG from './DartSVG.svelte';
+
+	export let index: number;
+
 	const dartCount = 3;
-	const possibleScores = [...Array(21).keys()].concat([25, 50]);
-	const optimalDarts: Dart[] = Array.from({ length: dartCount }, () => ({ s: 20, x: 3 }));
+	const possibleScores = [...Array(21).keys()].concat([25]);
+	const optimalDarts: [Dart, Dart, Dart] = [
+		{ s: 20, x: 3 },
+		{ s: 20, x: 3 },
+		{ s: 20, x: 3 }
+	];
 
-	let darts: Dart[] = Array.from({ length: dartCount }, () => ({ s: null, x: 1 }));
-	let i = 0;
+	let isLoading = false;
 
-	/**
-	 * Calculate the remaining score after all throws.
-	 * @returns {number} Remaining score
-	 */
-	function calculateRemaining() {
-		const totalThrown = darts.reduce((total, dart) => {
-			return total + (dart.s || 0) * dart.x;
-		}, 0);
+	$: player = $players[index];
+	$: darts = player.darts;
+	$: i = player.dartIdx;
+	$: score = dartTotal(darts);
+	$: remaining = player.remaining - score;
+	$: allSet = darts.every((dart) => dart.s !== null) || remaining <= 0;
 
-		return remaining - totalThrown;
-	}
-
+	// Reactively calculate darts to reduce remaining to 0.
 	$: {
-		let remainingPoints = calculateRemaining();
+		let remainingPoints = player.remaining;
+		const allScores = [...possibleScores, 50];
 
 		for (let idx = 0; idx < dartCount; idx++) {
 			if (darts[idx].s === null) {
-				if (remainingPoints < 0) {
+				if (remainingPoints <= 0 || ($game?.outMode === 'double' && remainingPoints === 1)) {
 					optimalDarts[idx] = { s: null, x: 1 };
-				} else if (remainingPoints <= 0) {
-					optimalDarts[idx] = { s: 0, x: 1 };
-				} else if (outMode === 'double') {
-					if (remainingPoints <= 40 && remainingPoints % 2 === 0) {
-						optimalDarts[idx] = { s: remainingPoints / 2, x: 2 };
+				} else if ($game?.outMode === 'double') {
+					if (remainingPoints <= 40 || remainingPoints === 50 && remainingPoints % 2 === 0) {
+						optimalDarts[idx] = remainingPoints === 50 ? { s: remainingPoints, x: 1 }
+						: { s: remainingPoints / 2, x: 2 };
 					} else {
 						let found = false;
-						for (let j = 0; j < possibleScores.length && !found; j++) {
-							const rem = remainingPoints - possibleScores[j];
-							if (rem <= 40 && rem % 2 === 0) {
-								optimalDarts[idx] = { s: possibleScores[j], x: 1 };
+						for (let j = 0; j < allScores.length && !found; j++) {
+							const rem = remainingPoints - allScores[j];
+							if (rem <= 40 || rem === 50 && rem % 2 === 0) {
+								optimalDarts[idx] = { s: allScores[j], x: 1 };
 								found = true;
 							}
 						}
 						for (let j = 1; j <= 20 && !found; j++) {
 							const rem = remainingPoints - j * 2;
-							if (rem <= 40 && rem % 2 === 0) {
+							if (rem <= 40 || rem === 50 && rem % 2 === 0) {
 								optimalDarts[idx] = { s: j, x: 2 };
 								found = true;
 							}
 						}
 						for (let j = 1; j <= 20 && !found; j++) {
 							const rem = remainingPoints - j * 3;
-							if (rem <= 40 && rem % 2 === 0) {
+							if (rem <= 40 || rem === 50 && rem % 2 === 0) {
 								optimalDarts[idx] = { s: j, x: 3 };
 								found = true;
 							}
@@ -64,8 +68,8 @@
 							optimalDarts[idx] = { s: 20, x: 3 };
 						}
 					}
-				} else if (outMode === 'single') {
-					if (possibleScores.includes(remainingPoints)) {
+				} else if ($game?.outMode === 'single') {
+					if (allScores.includes(remainingPoints)) {
 						optimalDarts[idx] = { s: remainingPoints, x: 1 };
 					} else if (remainingPoints <= 40 && remainingPoints % 2 === 0) {
 						optimalDarts[idx] = { s: remainingPoints / 2, x: 2 };
@@ -73,10 +77,10 @@
 						optimalDarts[idx] = { s: remainingPoints / 3, x: 3 };
 					} else {
 						let found = false;
-						for (let j = 0; j < possibleScores.length && !found; j++) {
-							const rem = remainingPoints - possibleScores[j];
-							if (possibleScores.includes(rem)) {
-								optimalDarts[idx] = { s: possibleScores[j], x: 1 };
+						for (let j = 0; j < allScores.length && !found; j++) {
+							const rem = remainingPoints - allScores[j];
+							if (allScores.includes(rem)) {
+								optimalDarts[idx] = { s: allScores[j], x: 1 };
 								found = true;
 							} else if (rem <= 40 && rem % 2 === 0) {
 								optimalDarts[idx] = { s: rem / 2, x: 2 };
@@ -88,8 +92,8 @@
 						}
 						for (let j = 1; j <= 20 && !found; j++) {
 							const rem = remainingPoints - j * 2;
-							if (possibleScores.includes(rem)) {
-								optimalDarts[idx] = { s: possibleScores[j], x: 1 };
+							if (allScores.includes(rem)) {
+								optimalDarts[idx] = { s: allScores[j], x: 1 };
 								found = true;
 							} else if (rem <= 40 && rem % 2 === 0) {
 								optimalDarts[idx] = { s: rem / 2, x: 2 };
@@ -101,8 +105,8 @@
 						}
 						for (let j = 1; j <= 20 && !found; j++) {
 							const rem = remainingPoints - j * 3;
-							if (possibleScores.includes(rem)) {
-								optimalDarts[idx] = { s: possibleScores[j], x: 1 };
+							if (allScores.includes(rem)) {
+								optimalDarts[idx] = { s: allScores[j], x: 1 };
 								found = true;
 							} else if (rem <= 40 && rem % 2 === 0) {
 								optimalDarts[idx] = { s: rem / 2, x: 2 };
@@ -111,112 +115,325 @@
 								optimalDarts[idx] = { s: rem / 3, x: 3 };
 								found = true;
 							}
-						}
-						if (!found) {
-							optimalDarts[idx] = { s: 20, x: 3 };
+							if (!found) {
+								optimalDarts[idx] = { s: 20, x: 3 };
+							}
 						}
 					}
 				}
-
-				// Update remaining points for next dart
-				remainingPoints -= optimalDarts[idx].x * optimalDarts[idx].s;
+			} else {
+				optimalDarts[idx] = { ...darts[idx] };
 			}
+			// Update remaining points for next dart
+			remainingPoints -= optimalDarts[idx].x * optimalDarts[idx].s;
 		}
 	}
 
 	/**
-	 * Convert dart to a string representation.
-	 * @param {Dart} dart - The dart to represent.
-	 * @returns {string} String representation of the dart.
+	 *
 	 */
-	function dartStr(dart: Dart) {
-		const score = dart.s !== null ? dart.s.toString() : 'Bust';
-		const preFix = dart.x === 1 ? '' : dart.x === 2 ? 'D' : 'T';
-		return preFix + score;
-	}
+	async function endTurn() {
+		isLoading = true;
+		try {
+			if (!$isOnline) throw new Error('You are currently offline.');
+			if (!$game) throw new Error('An unknown error occured.');
 
-	/** Reset darts to their initial state. */
-	function resetDarts() {
-		darts = Array.from({ length: dartCount }, () => ({ s: null, x: 1 }));
-		i = 0;
-	}
+			let { remaining: oldRemaining, scores, avg, legs, sets } = player;
 
-	/** Set darts and update the remaining score. */
-	function setDarts() {
-		dispatch('scoreInput', [...darts]);
-		remaining = calculateRemaining();
-		resetDarts();
+			const doubles = darts.filter((darts) => darts.s !== 0 && darts.x === 2);
+			const difference = oldRemaining - score;
+			const bust = difference < 0 || ($game.outMode === 'double' && difference === 1);
+			const pointsFit = score === oldRemaining;
+			const brokeDoubles = pointsFit && $game.outMode === 'double' && !doubles.pop();
+
+			score = bust || brokeDoubles ? 0 : score;
+			const newRemaining = oldRemaining - score;
+
+			scores = scores ? [...scores, score] : [score];
+			avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+			// was leg won? -> increment player legs, reset score
+			const legWon = newRemaining === 0;
+
+			let gameWon = false;
+
+			if (legWon) {
+				legs += 1;
+				// was set won? -> increment player sets, reset legs and score
+				const setWon = legs === $game.legs;
+				if (setWon) {
+					sets += 1;
+					gameWon = sets === $game.sets;
+
+					if (gameWon) {
+						await updatePlayer({
+							...player,
+							remaining: newRemaining,
+							scores,
+							avg,
+							sets
+						});
+					} else {
+						for (let idx = 0; idx < $game.size; idx++) {
+							if (i === idx) {
+								await updatePlayer({
+									...player,
+									darts: [
+										{ s: null, x: 1 },
+										{ s: null, x: 1 },
+										{ s: null, x: 1 }
+									],
+									dartIdx: 0,
+									sets
+								});
+							} else {
+								await updatePlayer(
+									{
+										...$players[idx],
+										legs: 0,
+										remaining: Number($game.gameMode),
+										scores: [],
+										avg: 0
+									},
+									$players[idx].id
+								);
+							}
+						}
+					}
+				} else {
+					await updatePlayer({
+						...player,
+						darts: [
+							{ s: null, x: 1 },
+							{ s: null, x: 1 },
+							{ s: null, x: 1 }
+						],
+						dartIdx: 0,
+						legs
+					});
+					for (let idx = 0; idx < $game.size; idx++) {
+						await updatePlayer(
+							{
+								...$players[idx],
+								remaining: Number($game.gameMode),
+								scores: [],
+								avg: 0
+							},
+							$players[idx].id
+						);
+					}
+				}
+			} else {
+				await updatePlayer({
+					...player,
+					remaining: newRemaining,
+					darts: [
+						{ s: null, x: 1 },
+						{ s: null, x: 1 },
+						{ s: null, x: 1 }
+					],
+					dartIdx: 0,
+					scores,
+					avg
+				});
+			}
+
+			// was game won? -> end the game
+			const turnIdx = gameWon ? $game.turnIdx : legWon || $game.size === 1 ? 0 : (index + 1) % $game.size;
+			const state = gameWon ? 'over' : $game.state;
+
+			await updateGame({ ...$game, state, turnIdx });
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : 'Unknown error while setting score.';
+			console.error(msg);
+			errorToast(msg);
+		} finally {
+			isLoading = false;
+		}
 	}
 </script>
 
 <div class="w-full">
-	<div class="grid grid-cols-3 mb-5 gap-5">
-		{#each darts as dart, idx}
-			<button
-				class="btn btn-lg rounded-lg {idx === i ? 'variant-ghost' : 'variant-filled'}"
-				on:click={() => (i = idx)}
-			>
-				<span class={dart.s === null ? 'italic opacity-30' : ''}>
-					{#if dart.s === null}
-						<span class="italic opacity-30">{dartStr(optimalDarts[idx])}</span>
-					{:else}
+	<!-- State of player: Thrown darts, Legs & Sets, Remaining, Outmode -->
+	<div class="card p-7 bg-primary-500">
+		<!-- Thrown darts -->
+		<div class="grid grid-cols-3 gap-4">
+			{#each darts as dart, idx}
+				<div
+					class="rounded-lg h-9 flex justify-center items-center py-1 {idx === i
+						? 'bg-white border-primary-800 border-2 text-primary-800'
+						: 'bg-primary-800 border-primary-800 border-2 text-white'}"
+				>
+					{#if dart.s !== null}
 						<span>{dartStr(darts[idx])}</span>
+					{:else if player.remaining - dartTotal(optimalDarts) === 0 && optimalDarts[idx].s}
+						<span class="italic opacity-70">{dartStr(optimalDarts[idx])}</span>
+					{:else}
+						<DartSVG fill={idx === i ? '#16805c' : 'white'} />
 					{/if}
-				</span></button
-			>
-		{/each}
+				</div>
+			{/each}
+		</div>
+		<!-- Legs & Sets, Remaining, Outmode -->
+		<div class="grid grid-cols-2 mt-6">
+			<!-- Legs & Sets -->
+			<div class="flex flex-col items-start gap-3 text-white">
+				<div>
+					<div class="mb-1 text-primary-800 dark:text-primary-500">Legs</div>
+					<Ratings bind:value={player.legs} max={$game?.legs} fill="fill-white">
+						<svelte:fragment slot="full">
+							<svg
+								class="w-5 md:w-5 lg:w-5 aspect-square"
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 512 512"
+								><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
+							</svg>
+						</svelte:fragment>
+						<svelte:fragment slot="half">
+							<svg
+								class="w-5 md:w-5 lg:w-5 aspect-square"
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 512 512"
+								><path
+									d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+								/>
+							</svg>
+						</svelte:fragment>
+						<svelte:fragment slot="empty">
+							<svg
+								class="w-5 md:w-5 lg:w-5 aspect-square"
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 512 512"
+							>
+								<path
+									d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+								/>
+							</svg>
+						</svelte:fragment>
+					</Ratings>
+				</div>
+				<div>
+					<div class="mb-1 text-primary-800 dark:text-primary-500">Sets</div>
+					<Ratings bind:value={player.sets} max={$game?.sets} fill="fill-white">
+						<svelte:fragment slot="full">
+							<svg
+								class="w-5 md:w-5 lg:w-5 aspect-square"
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 512 512"
+								><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
+							</svg>
+						</svelte:fragment>
+						<svelte:fragment slot="half">
+							<svg
+								class="w-5 md:w-5 lg:w-5 aspect-square"
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 512 512"
+								><path
+									d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+								/>
+							</svg>
+						</svelte:fragment>
+						<svelte:fragment slot="empty">
+							<svg
+								class="w-5 md:w-5 lg:w-5 aspect-square"
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 512 512"
+							>
+								<path
+									d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+								/>
+							</svg>
+						</svelte:fragment>
+					</Ratings>
+				</div>
+			</div>
+			<!-- Remaining, Outmode -->
+			<div class="flex flex-col justify-center items-center gap-2">
+				<!-- Remaining -->
+				<div class="h1 text-center text-6xl text-white">
+					{$game?.state === 'over' && $game.turnIdx === index ? 0 : remaining}
+				</div>
+				<!-- Outmode -->
+				<div class="text-center text-primary-800 dark:text-primary-500">{$game?.outMode} out</div>
+			</div>
+		</div>
 	</div>
-	<div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
-		{#each possibleScores as score}
+	{#if $game?.state === 'closed' && $game.turnIdx === index}
+		<!-- Input for multiplier -->
+		<div class="w-full grid grid-cols-3 my-5 gap-2">
 			<button
-				class="btn btn-lg rounded-lg {darts[i].s === score ? 'variant-ghost' : 'variant-filled'}"
-				disabled={score > 20 && darts[i].x !== 1}
-				on:click={() => {
-					if (darts[i].s === score) {
-						darts[i].s = null;
+				class="btn btn-lg rounded-lg {darts[i].x === 1 ? 'variant-ghost-primary' : 'variant-ghost'}"
+				on:click={async () => {
+					darts[i].x = 1;
+					await updatePlayer({ ...player, darts });
+				}}
+			>
+				Single
+			</button>
+			<button
+				class="btn btn-lg rounded-lg {darts[i].x === 2 ? 'variant-ghost-primary' : 'variant-ghost'}"
+				on:click={async () => {
+					darts[i].x = darts[i].x === 2 ? 1 : 2;
+					await updatePlayer({ ...player, darts });
+				}}
+			>
+				Double
+			</button>
+			<button
+				class="btn btn-lg rounded-lg {darts[i].x === 3 ? 'variant-ghost-primary' : 'variant-ghost'}"
+				disabled={(darts[i].s || 0) > 20}
+				on:click={async () => {
+					darts[i].x = darts[i].x === 3 ? 1 : 3;
+					await updatePlayer({ ...player, darts });
+				}}
+			>
+				Tripple
+			</button>
+		</div>
+		<!-- Input for dart fields -->
+		<div class="grid grid-cols-6 gap-2">
+			{#each possibleScores as score}
+				<button
+					class="btn btn-lg rounded-lg p-0 aspect-square
+					{darts[i].s === score ? 'variant-ghost-primary' : 'variant-ghost'}"
+					disabled={score === 25 && darts[i].x === 3}
+					on:click={async () => {
+						darts[i].s = darts[i].s === score ? null : score;
+						await updatePlayer({ ...player, darts });
+					}}
+				>
+					{score}
+				</button>
+			{/each}
+			<button
+				class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square"
+				disabled={i === 0}
+				on:click={async () => {
+					darts[i] = { s: null, x: 1 };
+					await updatePlayer({ ...player, darts, dartIdx: --i });
+				}}
+			>
+				<ChevronLeftIcon class="min-w-min" />
+			</button>
+			<button
+				class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square"
+				disabled={darts[i].s === null}
+				on:click={async () => {
+					if (allSet) {
+						await endTurn();
 					} else {
-						darts[i].s = score;
-						i < dartCount - 1 && i++;
+						await updatePlayer({ ...player, dartIdx: ++i });
 					}
 				}}
 			>
-				{score}
+				{#if isLoading}
+					<ProgressRadial stroke={120} width="w-6" />
+				{:else if allSet}
+					<CheckIcon class="min-w-min" />
+				{:else}
+					<ChevronRightIcon class="min-w-min" />
+				{/if}
 			</button>
-		{/each}
-		<button
-			class="btn btn-lg rounded-lg {darts[i].x === 2 ? 'variant-ghost' : 'variant-filled'}"
-			disabled={(darts[i].s || 0) > 20}
-			on:click={() => (darts[i].x = darts[i].x === 2 ? 1 : 2)}
-		>
-			D
-		</button>
-		<button
-			class="btn btn-lg rounded-lg {darts[i].x === 3 ? 'variant-ghost' : 'variant-filled'}"
-			disabled={(darts[i].s || 0) > 20}
-			on:click={() => (darts[i].x = darts[i].x === 3 ? 1 : 3)}
-		>
-			T
-		</button>
-		<button
-			class="btn btn-lg rounded-lg variant-filled-secondary mt-3"
-			disabled={i === 0}
-			on:click={() => (darts[i--] = { s: null, x: 1 })}
-		>
-			<ArrowLeftIcon class="min-w-min" />
-		</button>
-		<button
-			class="btn btn-lg rounded-lg variant-filled-secondary mt-3"
-			disabled={i === dartCount - 1 || darts[i].s === null}
-			on:click={() => i++}
-		>
-			<ArrowRightIcon class="min-w-min" />
-		</button>
-		<button
-			class="btn btn-lg rounded-lg variant-filled-success sm:col-start-5 mt-3"
-			disabled={darts.some((dart) => dart.s === null)}
-			on:click={setDarts}
-		>
-			<CheckIcon class="min-w-min" />
-		</button>
-	</div>
+		</div>
+	{/if}
 </div>
