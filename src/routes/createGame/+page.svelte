@@ -63,9 +63,9 @@
 				if (!$isOnline) {
 					throw new Error('You are currently offline.');
 				}
+				await signIn();
 				$game = gameForm;
 				$game.shortId = await generateShortId();
-				await signIn();
 				await createGame($game);
 				await joinGame($game.shortId);
 				goto(`/games/${$gameID}`);

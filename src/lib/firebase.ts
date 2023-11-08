@@ -265,7 +265,7 @@ export async function updateGame(game: Game) {
 export async function updatePlayer(player: Player, playerID: string = get(userID)) {
 	console.log('Updating player.');
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const { stream, id, ...playerWithoutIdAndStream } = player;
+	const { id, ...playerWithoutIdAndStream } = player;
 	const playerDocRef = getPlayerDocRef(playerID);
 	await updateDoc(playerDocRef, playerWithoutIdAndStream);
 }
