@@ -2,7 +2,7 @@
 	export let stream: MediaStream | undefined;
 
 	let videoElement: HTMLVideoElement;
-
+	
 	$: {
 		if (videoElement) {
 			if (stream instanceof MediaStream) {

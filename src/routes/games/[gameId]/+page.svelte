@@ -53,7 +53,7 @@
 	let micLoading = false;
 	let leaveLoading = false;
 	let peers: Map<string, Peer> = new Map();
-	let streams: Map<string, MediaStream> = new Map();;
+	let streams: Map<string, MediaStream> = new Map();
 	let onTurnPlayerId: string;
 
 	let offTurnPlayers: Player[];
@@ -62,7 +62,6 @@
 	$: if ($game && $players[$game.turnIdx]?.id !== onTurnPlayerId) {
 		onTurnPlayerId = $players[$game.turnIdx].id || '';
 	}
-
 
 	/**
 	 * Toggle the state of the camera.
@@ -286,6 +285,8 @@
 	 * @param stream
 	 */
 	function disconnect(id: string) {
+		console.log(`Disconnecting to ${id}.`);
+
 		const peer = peers.get(id);
 		peer?.pc.close();
 		peer?.subs.forEach((unsubscribe) => unsubscribe());
@@ -297,6 +298,7 @@
 			stream.removeTrack(track);
 		});
 		streams.delete(id);
+		console.log(`Disconnect completed.`);
 	}
 
 	/**
@@ -499,7 +501,9 @@
 		);
 	});
 
-	onDestroy(() => {cleanup()});
+	onDestroy(() => {
+		cleanup();
+	});
 </script>
 
 {#if $game && $players.length}
@@ -646,21 +650,23 @@
 							</div>
 						</div>
 					</div>
-					<div class="grid grid-cols-3 gap-4 mt-4">
-						{#each [...offTurnPlayers] as { name, remaining, id }}
-							<div
-								class="relative aspect-square rounded-lg overflow-hidden bg-[url('/dummy.png')] bg-cover"
-							>
-								<VideoPlayer stream={streams.get(id || '')} />
+					{#if offTurnPlayers}
+						<div class="grid grid-cols-3 gap-4 mt-4">
+							{#each [...offTurnPlayers] as { name, remaining, id }}
 								<div
-									class="w-full container variant-filled absolute bottom-0 flex flex-row justify-between items-center py-1 px-2 bg-surface-500"
+									class="relative aspect-square rounded-lg overflow-hidden bg-[url('/dummy.png')] bg-cover"
 								>
-									<div>{name}</div>
-									<div>{remaining}</div>
+									<VideoPlayer stream={streams.get(id || '')} />
+									<div
+										class="w-full container variant-filled absolute bottom-0 flex flex-row justify-between items-center py-1 px-2 bg-surface-500"
+									>
+										<div>{name}</div>
+										<div>{remaining}</div>
+									</div>
 								</div>
-							</div>
-						{/each}
-					</div>
+							{/each}
+						</div>
+					{/if}
 					<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
 						<button
 							class="btn-icon btn-icon-xl {!camOn
