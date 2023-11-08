@@ -30,7 +30,7 @@
 >
 	<progress class="rounded-none h-3 fixed top-0 left-0 w-full z-10" value={$timer / original} />
 	<div class="flex flex-col justify-center items-center gap-10 max-w-sm mx-auto m">
-		<div class="text-5xl rubberBand">WOHOOOO!!</div>
+		<div class="text-5xl text-white rubberBand">WOHOOOO!!</div>
 		<img src="/trophy.svg" alt="Trophy" />
 		<div class="text-3xl text-center"><slot /></div>
 	</div>

@@ -14,7 +14,7 @@
 		<img class="w-24" src="/dartsappHeader.svg" alt="Dartsapp Header" />
 	</div>
 	<div
-		class="w-20 h-20 bg-primary-500 rounded-full absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 flex items-center justify-center"
+		class="w-24 h-24 bg-primary-500 rounded-full absolute bottom-2 left-1/2 transform -translate-x-1/2 translate-y-1/2 flex items-center justify-center"
 	>
 		<img class="w-16 h-16" src="/dartsappIcon.svg" alt="Dartsapp Icon" />
 	</div>

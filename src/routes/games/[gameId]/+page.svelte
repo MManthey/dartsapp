@@ -372,7 +372,7 @@
 				// Add the component properties as key/value pairs
 				props: { background: 'bg-primary-500' },
 				// Provide a template literal for the default component slot
-				slot: `<p><span class="text-primary-900 text-5xl">${$players[$game?.turnIdx || 0]?.name}</span></br> has won the match!</p>`
+				slot: `<p><span class="text-primary-900 text-white text-5xl">${$players[$game?.turnIdx || 0]?.name}</span></br> has won the match!</p>`
 			};
 			const modal: ModalSettings = {
 				type: 'component',
