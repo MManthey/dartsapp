@@ -75,7 +75,7 @@
 			console.log(`Toggling camera ${camOn ? 'off' : 'on'}.`);
 			camLoading = true;
 			if (!camOn) {
-				const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+				const camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
 				camStream.getVideoTracks().forEach((track) => {
 					localStream.addTrack(track);
 					for (let { pc } of peers.values()) {
