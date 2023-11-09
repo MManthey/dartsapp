@@ -1,5 +1,8 @@
 <script lang="ts">
+	import { userID } from "$lib/stores";
+
 	export let stream: MediaStream | undefined;
+	export let id: string;
 
 	let videoElement: HTMLVideoElement;
 	
@@ -17,6 +20,6 @@
 <div class="w-full h-full bg-[url('/dummy.png')] bg-cover">
 	<!-- svelte-ignore a11y-media-has-caption -->
 	{#if stream}
-		<video class="h-full w-full object-cover" autoplay playsinline bind:this={videoElement} />
+		<video class="h-full w-full object-cover" autoplay playsinline bind:this={videoElement} muted={$userID === id} />
 	{/if}
 </div>

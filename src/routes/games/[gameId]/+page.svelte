@@ -543,7 +543,7 @@
 					<div class="rounded-lg overflow-hidden flex flex-col">
 						<!-- Uppder Area: Camera or Dummy/Profile Picture -->
 						<div class="aspect-[4/3] overflow-hidden">
-							<VideoPlayer stream={streams.get(onTurnPlayerId)} />
+							<VideoPlayer stream={streams.get(onTurnPlayerId)} id={onTurnPlayerId} />
 						</div>
 						<!-- Lower Area: Thrown Darts, Name, Legs & Sets, Remaining, Outmode -->
 						<div
@@ -662,7 +662,7 @@
 								<div
 									class="relative aspect-square rounded-lg overflow-hidden bg-[url('/dummy.png')] bg-cover"
 								>
-									<VideoPlayer stream={streams.get(id || '')} />
+									<VideoPlayer stream={streams.get(id || '')} id={id || ''} />
 									<div
 										class="w-full container variant-filled absolute bottom-0 flex flex-row justify-between items-center py-1 px-2 bg-surface-500"
 									>
