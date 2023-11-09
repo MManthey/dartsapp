@@ -75,7 +75,12 @@
 			console.log(`Toggling camera ${camOn ? 'off' : 'on'}.`);
 			camLoading = true;
 			if (!camOn) {
-				const camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+				const camStream = await navigator.mediaDevices.getUserMedia({ 
+					video: { 
+						facingMode: "environment", // back facing cam
+						aspectRatio: 1 // Square aspect ratio
+					} 
+				});
 				camStream.getVideoTracks().forEach((track) => {
 					localStream.addTrack(track);
 					for (let { pc } of peers.values()) {
@@ -536,7 +541,7 @@
 				<div class="absolute w-full">
 					<div class="rounded-lg overflow-hidden flex flex-col">
 						<!-- Uppder Area: Camera or Dummy/Profile Picture -->
-						<div class="aspect-[4/3]">
+						<div class="aspect-square">
 							<VideoPlayer stream={streams.get(onTurnPlayerId)} />
 						</div>
 						<!-- Lower Area: Thrown Darts, Name, Legs & Sets, Remaining, Outmode -->
