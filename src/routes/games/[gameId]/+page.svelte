@@ -77,8 +77,8 @@
 			if (!camOn) {
 				const camStream = await navigator.mediaDevices.getUserMedia({ 
 					video: { 
-						facingMode: "environment", // back facing cam
-						aspectRatio: 1 // Square aspect ratio
+						facingMode: "environment",
+						aspectRatio: 4 / 3
 					} 
 				});
 				camStream.getVideoTracks().forEach((track) => {
@@ -512,14 +512,14 @@
 </script>
 
 {#if $game && $players.length}
-	<div class="flex flex-col gap-12 items-center">
+	<div class="flex flex-col gap-8 items-center">
 		{#if $game.state === 'open'}
 			<button class="btn btn-xl variant-ghost-primary" on:click={copyShortId}>
 				#{$game.shortId}
 				<CopyIcon class="ml-5" />
 			</button>
 		{/if}
-		<RadioGroup class="grid grid-cols-3 mt-2 w-full" active="variant-filled-primary">
+		<RadioGroup class="grid grid-cols-3 w-full" active="variant-filled-primary">
 			<RadioItem
 				bind:group={mode}
 				name="chat"
@@ -541,7 +541,7 @@
 				<div class="absolute w-full">
 					<div class="rounded-lg overflow-hidden flex flex-col">
 						<!-- Uppder Area: Camera or Dummy/Profile Picture -->
-						<div class="aspect-square">
+						<div class="aspect-[4/3] overflow-hidden">
 							<VideoPlayer stream={streams.get(onTurnPlayerId)} />
 						</div>
 						<!-- Lower Area: Thrown Darts, Name, Legs & Sets, Remaining, Outmode -->

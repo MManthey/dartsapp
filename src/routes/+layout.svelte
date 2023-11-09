@@ -24,7 +24,7 @@
 </div>
 
 <main class="min-h-screen">
-	<div class="container max-w-lg mx-auto px-10 my-20">
+	<div class="container max-w-lg mx-auto px-10 my-16">
 		<slot />
 		<Toast max={1} />
 		<Modal
