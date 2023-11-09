@@ -138,6 +138,7 @@
 				});
 			}
 			micOn = !micOn;
+			streams.set($userID, localStream);
 		} catch (err: unknown) {
 			const msg =
 				err instanceof Error ? err.message : 'Unknown error while toggling the microphone.';
