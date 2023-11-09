@@ -413,7 +413,7 @@
 					await updatePlayer({ ...player, darts, dartIdx: --i });
 				}}
 			>
-				<ChevronLeftIcon class="min-w-min" />
+				<ChevronLeftIcon />
 			</button>
 			<button
 				class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square"
@@ -429,9 +429,9 @@
 				{#if isLoading}
 					<ProgressRadial stroke={120} width="w-6" />
 				{:else if allSet}
-					<CheckIcon class="min-w-min" />
+					<CheckIcon />
 				{:else}
-					<ChevronRightIcon class="min-w-min" />
+					<ChevronRightIcon />
 				{/if}
 			</button>
 		</div>
