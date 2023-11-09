@@ -77,8 +77,8 @@
 			if (!camOn) {
 				const camStream = await navigator.mediaDevices.getUserMedia({ 
 					video: { 
-						facingMode: "environment",
-						aspectRatio: 4 / 3
+						facingMode: "environment", // back facing cam
+						aspectRatio: 1 // Square aspect ratio
 					} 
 				});
 				camStream.getVideoTracks().forEach((track) => {
