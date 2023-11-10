@@ -59,9 +59,16 @@
 	let offTurnPlayers: Player[];
 	let mode = 'chat';
 
-	$: if ($game && $players[$game.turnIdx]?.id !== onTurnPlayerId) {
+	$: if ($game && $players[$game.turnIdx] && $players[$game.turnIdx].id !== onTurnPlayerId) {
 		onTurnPlayerId = $players[$game.turnIdx].id || '';
 	}
+
+	$: console.log('Game:', $game);
+
+	$: console.log('Players:', $players);
+
+	$: console.log('OffTurnPlayers:', offTurnPlayers);
+	
 
 	/**
 	 * Toggle the state of the camera.
@@ -348,18 +355,29 @@
 	}
 
 	/**
+	 * 
+	 * @param newSize
+	 */
+	function onNewSize(newSize: 1 | 2 | 3 | 4) {
+		if (!$game) return;
+		console.log('onNewSize')
+		$game.size = newSize;
+		offTurnPlayers = $players.filter((p) => p.idx !== $game?.turnIdx);
+	}
+
+	/**
 	 * This should not check for the game state as it will be updated after the turn.
 	 * @param newTurnIdx
 	 */
 	function onNewTurn(newTurnIdx: number) {
 		if (!$game) return;
-		console.log(`newTurnIdx: ${newTurnIdx}`);
+		console.log('onNewTurn');
 		const oldPlayer = $players[$game.turnIdx];
-		successToast(`${oldPlayer.name} scored ${oldPlayer.scores.slice(-1)}.`);
+		if (oldPlayer) successToast(`${oldPlayer.name} scored ${oldPlayer.scores.slice(-1)}.`);
 		$game.turnIdx = newTurnIdx;
 		mode = newTurnIdx === index ? 'score' : 'chat';
 		onTurnPlayerId = $players[newTurnIdx].id || '';
-		offTurnPlayers = $players.filter((p) => p.idx !== $game?.turnIdx);
+		offTurnPlayers = $players.filter((p) => p.idx !== newTurnIdx);
 	}
 
 	/**
@@ -368,7 +386,7 @@
 	 */
 	function onNewState(newState: 'open' | 'closed' | 'over') {
 		if (!$game) return;
-		console.log(`newState: ${newState}`);
+		console.log('onNewState');
 		if (newState === 'closed' && $game?.turnIdx === index) {
 			mode = 'score';
 		} else if (newState === 'over') {
@@ -398,9 +416,9 @@
 	 * @param initialLoad
 	 */
 	function onPlayerJoin(id: string, idx: number, data: DocumentData, initialLoad: boolean) {
+		console.log('onPlayerJoin');
 		const isUser = id === $userID;
 		const player = { id, ...data } as Player;
-		console.log(`${player.name} is joining.`);
 
 		if (!isUser) {
 			playerStateSubs.set(
@@ -430,10 +448,12 @@
 	 * @param idx
 	 */
 	function onPlayerChange(idx: number, data: DocumentData) {
+		console.log('onPlayerChange');
 		const oldPlayer = $players[idx];
 		const newPlayer = { ...oldPlayer, ...data };
-		console.log(`${newPlayer.name} is changing.`);
+		// console.log(`${newPlayer.name} is changing.`);
 		$players[idx] = newPlayer;
+		offTurnPlayers = $players.filter((p) => p.idx !== $game?.turnIdx);
 	}
 
 	/**
@@ -446,8 +466,9 @@
 		const peer = peers.get(id);
 
 		if (!player || !peer) return;
+		console.log('onPlayerLeave');
 
-		console.log(`${player.name} is leaving.`);
+		// console.log(`${player.name} is leaving.`);
 
 		if (index > idx) index--;
 
@@ -481,7 +502,7 @@
 						$game = { ...newGame };
 					} else {
 						if (newGame.size !== $game.size) {
-							$game.size = newGame.size;
+							onNewSize(newGame.size);
 						}
 						if (newGame.turnIdx !== $game.turnIdx) {
 							onNewTurn(newGame.turnIdx);
@@ -493,7 +514,7 @@
 				}
 			}),
 			onPlayersChange((id, type, data) => {
-				console.log(data);
+				// console.log(data);
 				const idx = data.idx;
 				if (type === 'added') {
 					onPlayerJoin(id, idx, data, initialLoad);
@@ -540,122 +561,124 @@
 		<div class="relative w-full">
 			{#if mode === 'chat'}
 				<div class="absolute w-full">
-					<div class="rounded-lg overflow-hidden flex flex-col">
-						<!-- Uppder Area: Camera or Dummy/Profile Picture -->
-						<div class="aspect-[4/3] overflow-hidden">
-							<VideoPlayer stream={streams.get(onTurnPlayerId)} id={onTurnPlayerId} />
-						</div>
-						<!-- Lower Area: Thrown Darts, Name, Legs & Sets, Remaining, Outmode -->
-						<div
-							class="w-full bg-primary-500 py-4 px-6 flex flex-col justify-between text-white gap-3"
-						>
-							<!-- Thrown Darts -->
-							<div class="grid grid-cols-3 gap-4">
-								{#each $players[$game.turnIdx].darts as dart, idx}
-									<div
-										class="rounded-lg h-9 flex justify-center items-center py-1 {idx ===
-										$players[$game.turnIdx].dartIdx
-											? 'bg-white border-primary-800 border-2 text-primary-800'
-											: 'bg-primary-800 border-primary-800 border-2 text-white'}"
-									>
-										{#if dart.s === null}
-											<DartSVG fill={idx === $players[$game.turnIdx].dartIdx ? '#16805c' : 'white'} />
-										{:else}
-											<span>{dartStr($players[$game.turnIdx].darts[idx])}</span>
-										{/if}
-									</div>
-								{/each}
+					{#if $players[$game.turnIdx]}
+						<div class="rounded-lg overflow-hidden flex flex-col">
+							<!-- Uppder Area: Camera or Dummy/Profile Picture -->
+							<div class="aspect-[4/3] overflow-hidden">
+								<VideoPlayer stream={streams.get(onTurnPlayerId)} id={onTurnPlayerId} />
 							</div>
-							<!-- Name, Legs & Sets, Remaining, Outmode -->
-							<div class="flex flex-row justify-around">
-								<!-- Name, Legs & Sets -->
-								<div class="flex flex-col gap-2">
-									<h3 class="h3">{$players[$game.turnIdx].name}</h3>
-									<div class="flex flex-row gap-2 justify-start items-center">
-										<div class="w-10 text-primary-800">Legs</div>
-										<Ratings
-											bind:value={$players[$game.turnIdx].legs}
-											max={$game?.legs}
-											fill="fill-white"
+							<!-- Lower Area: Thrown Darts, Name, Legs & Sets, Remaining, Outmode -->
+							<div
+								class="w-full bg-primary-500 py-4 px-6 flex flex-col justify-between text-white gap-3"
+							>
+								<!-- Thrown Darts -->
+								<div class="grid grid-cols-3 gap-4">
+									{#each $players[$game.turnIdx].darts as dart, idx}
+										<div
+											class="rounded-lg h-9 flex justify-center items-center py-1 {idx ===
+											$players[$game.turnIdx].dartIdx
+												? 'bg-white border-primary-800 border-2 text-primary-800'
+												: 'bg-primary-800 border-primary-800 border-2 text-white'}"
 										>
-											<svelte:fragment slot="full">
-												<svg
-													class="w-5 md:w-5 lg:w-5 aspect-square"
-													xmlns="http://www.w3.org/2000/svg"
-													viewBox="0 0 512 512"
-													><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
-												</svg>
-											</svelte:fragment>
-											<svelte:fragment slot="half">
-												<svg
-													class="w-5 md:w-5 lg:w-5 aspect-square"
-													xmlns="http://www.w3.org/2000/svg"
-													viewBox="0 0 512 512"
-													><path
-														d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
-													/>
-												</svg>
-											</svelte:fragment>
-											<svelte:fragment slot="empty">
-												<svg
-													class="w-5 md:w-5 lg:w-5 aspect-square"
-													xmlns="http://www.w3.org/2000/svg"
-													viewBox="0 0 512 512"
-												>
-													<path
-														d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
-													/>
-												</svg>
-											</svelte:fragment>
-										</Ratings>
+											{#if dart.s === null}
+												<DartSVG fill={idx === $players[$game.turnIdx].dartIdx ? '#16805c' : 'white'} />
+											{:else}
+												<span>{dartStr($players[$game.turnIdx].darts[idx])}</span>
+											{/if}
+										</div>
+									{/each}
+								</div>
+								<!-- Name, Legs & Sets, Remaining, Outmode -->
+								<div class="flex flex-row justify-around">
+									<!-- Name, Legs & Sets -->
+									<div class="flex flex-col gap-2">
+										<h3 class="h3">{$players[$game.turnIdx].name}</h3>
+										<div class="flex flex-row gap-2 justify-start items-center">
+											<div class="w-10 text-primary-800">Legs</div>
+											<Ratings
+												bind:value={$players[$game.turnIdx].legs}
+												max={$game?.legs}
+												fill="fill-white"
+											>
+												<svelte:fragment slot="full">
+													<svg
+														class="w-5 md:w-5 lg:w-5 aspect-square"
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 512 512"
+														><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
+													</svg>
+												</svelte:fragment>
+												<svelte:fragment slot="half">
+													<svg
+														class="w-5 md:w-5 lg:w-5 aspect-square"
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 512 512"
+														><path
+															d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+														/>
+													</svg>
+												</svelte:fragment>
+												<svelte:fragment slot="empty">
+													<svg
+														class="w-5 md:w-5 lg:w-5 aspect-square"
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 512 512"
+													>
+														<path
+															d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+														/>
+													</svg>
+												</svelte:fragment>
+											</Ratings>
+										</div>
+										<div class="flex flex-row gap-2 justify-start items-center">
+											<div class="w-10 text-primary-800">Sets</div>
+											<Ratings
+												bind:value={$players[$game.turnIdx].sets}
+												max={$game?.sets}
+												fill="fill-white"
+											>
+												<svelte:fragment slot="full">
+													<svg
+														class="w-5 md:w-5 lg:w-5 aspect-square"
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 512 512"
+														><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
+													</svg>
+												</svelte:fragment>
+												<svelte:fragment slot="half">
+													<svg
+														class="w-5 md:w-5 lg:w-5 aspect-square"
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 512 512"
+														><path
+															d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+														/>
+													</svg>
+												</svelte:fragment>
+												<svelte:fragment slot="empty">
+													<svg
+														class="w-5 md:w-5 lg:w-5 aspect-square"
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 512 512"
+													>
+														<path
+															d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+														/>
+													</svg>
+												</svelte:fragment>
+											</Ratings>
+										</div>
 									</div>
-									<div class="flex flex-row gap-2 justify-start items-center">
-										<div class="w-10 text-primary-800">Sets</div>
-										<Ratings
-											bind:value={$players[$game.turnIdx].sets}
-											max={$game?.sets}
-											fill="fill-white"
-										>
-											<svelte:fragment slot="full">
-												<svg
-													class="w-5 md:w-5 lg:w-5 aspect-square"
-													xmlns="http://www.w3.org/2000/svg"
-													viewBox="0 0 512 512"
-													><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
-												</svg>
-											</svelte:fragment>
-											<svelte:fragment slot="half">
-												<svg
-													class="w-5 md:w-5 lg:w-5 aspect-square"
-													xmlns="http://www.w3.org/2000/svg"
-													viewBox="0 0 512 512"
-													><path
-														d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
-													/>
-												</svg>
-											</svelte:fragment>
-											<svelte:fragment slot="empty">
-												<svg
-													class="w-5 md:w-5 lg:w-5 aspect-square"
-													xmlns="http://www.w3.org/2000/svg"
-													viewBox="0 0 512 512"
-												>
-													<path
-														d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
-													/>
-												</svg>
-											</svelte:fragment>
-										</Ratings>
+									<!-- Remaining, Outmode -->
+									<div class="flex flex-col justify-center">
+										<div class="text-primary-800">{$game?.outMode} out</div>
+										<div class="text-6xl">{$players[$game.turnIdx].remaining}</div>
 									</div>
 								</div>
-								<!-- Remaining, Outmode -->
-								<div class="flex flex-col justify-center">
-									<div class="text-primary-800">{$game?.outMode} out</div>
-									<div class="text-6xl">{$players[$game.turnIdx].remaining}</div>
-								</div>
 							</div>
 						</div>
-					</div>
+					{/if}
 					{#if offTurnPlayers}
 						<div class="grid grid-cols-3 gap-4 mt-4">
 							{#each [...offTurnPlayers] as { name, remaining, id }}
