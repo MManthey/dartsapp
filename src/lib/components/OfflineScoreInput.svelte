@@ -37,28 +37,30 @@
 				if (remainingPoints <= 0 || ($game?.outMode === 'double' && remainingPoints === 1)) {
 					optimalDarts[idx] = { s: null, x: 1 };
 				} else if ($game?.outMode === 'double') {
-					if (remainingPoints <= 40 || remainingPoints === 50 && remainingPoints % 2 === 0) {
-						optimalDarts[idx] = remainingPoints === 50 ? { s: remainingPoints, x: 1 }
-						: { s: remainingPoints / 2, x: 2 };
+					if (remainingPoints <= 40 || (remainingPoints === 50 && remainingPoints % 2 === 0)) {
+						optimalDarts[idx] =
+							remainingPoints === 50
+								? { s: remainingPoints, x: 1 }
+								: { s: remainingPoints / 2, x: 2 };
 					} else {
 						let found = false;
 						for (let j = 0; j < allScores.length && !found; j++) {
 							const rem = remainingPoints - allScores[j];
-							if (rem <= 40 || rem === 50 && rem % 2 === 0) {
+							if (rem <= 40 || (rem === 50 && rem % 2 === 0)) {
 								optimalDarts[idx] = { s: allScores[j], x: 1 };
 								found = true;
 							}
 						}
 						for (let j = 1; j <= 20 && !found; j++) {
 							const rem = remainingPoints - j * 2;
-							if (rem <= 40 || rem === 50 && rem % 2 === 0) {
+							if (rem <= 40 || (rem === 50 && rem % 2 === 0)) {
 								optimalDarts[idx] = { s: j, x: 2 };
 								found = true;
 							}
 						}
 						for (let j = 1; j <= 20 && !found; j++) {
 							const rem = remainingPoints - j * 3;
-							if (rem <= 40 || rem === 50 && rem % 2 === 0) {
+							if (rem <= 40 || (rem === 50 && rem % 2 === 0)) {
 								optimalDarts[idx] = { s: j, x: 3 };
 								found = true;
 							}
@@ -170,7 +172,7 @@
 							scores,
 							avg,
 							sets
-						}
+						};
 					} else {
 						for (let idx = 0; idx < $game.size; idx++) {
 							if (i === idx) {
@@ -183,7 +185,7 @@
 									],
 									dartIdx: 0,
 									sets
-								}
+								};
 							} else {
 								$players[idx] = {
 									...$players[idx],
@@ -231,10 +233,14 @@
 			}
 
 			// was game won? -> end the game
-			const turnIdx = gameWon ? $game.turnIdx : legWon || $game.size === 1 ? 0 : (index + 1) % $game.size;
+			const turnIdx = gameWon
+				? $game.turnIdx
+				: legWon || $game.size === 1
+				? 0
+				: (index + 1) % $game.size;
 			const state = gameWon ? 'over' : $game.state;
 
-			$game = { ...$game, state, turnIdx }
+			$game = { ...$game, state, turnIdx };
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Unknown error while setting score.';
 			console.error(msg);
@@ -246,10 +252,7 @@
 </script>
 
 <div class="w-full">
-	<!-- State of player: Thrown darts, Legs & Sets, Remaining, Outmode -->
-	<div class="card p-7 bg-primary-500">
-		<div class="text-white text-5xl text-center pb-6">{player.name}</div>
-		<!-- Thrown darts -->
+	<div class="card p-7 bg-primary-500 text-white">
 		<div class="grid grid-cols-3 gap-4">
 			{#each darts as dart, idx}
 				<div
@@ -267,12 +270,11 @@
 				</div>
 			{/each}
 		</div>
-		<!-- Legs & Sets, Remaining, Outmode -->
-		<div class="grid grid-cols-2 mt-6">
-			<!-- Legs & Sets -->
-			<div class="flex flex-col items-start gap-3 text-white">
-				<div>
-					<div class="mb-1 text-primary-800 dark:text-primary-500">Legs</div>
+		<div class="flex flex-row justify-around mt-6">
+			<div class="flex flex-col gap-2">
+				<h3 class="h3">{player.name}</h3>
+				<div class="flex flex-row gap-2 justify-start items-center">
+					<div class="w-10 text-primary-800">Legs</div>
 					<Ratings bind:value={player.legs} max={$game?.legs} fill="fill-white">
 						<svelte:fragment slot="full">
 							<svg
@@ -305,8 +307,8 @@
 						</svelte:fragment>
 					</Ratings>
 				</div>
-				<div>
-					<div class="mb-1 text-primary-800 dark:text-primary-500">Sets</div>
+				<div class="flex flex-row gap-2 justify-start items-center">
+					<div class="w-10 text-primary-800">Sets</div>
 					<Ratings bind:value={player.sets} max={$game?.sets} fill="fill-white">
 						<svelte:fragment slot="full">
 							<svg
@@ -340,22 +342,20 @@
 					</Ratings>
 				</div>
 			</div>
-			<!-- Remaining, Outmode -->
-			<div class="flex flex-col justify-center items-center gap-2">
-				<!-- Remaining -->
-				<div class="h1 text-center text-6xl text-white">
+			<div class="flex flex-col justify-center">
+				<div class="text-primary-800">{$game?.outMode} out</div>
+				<div class="h1 text-center text-6xl">
 					{$game?.state === 'over' && $game.turnIdx === index ? 0 : remaining}
 				</div>
-				<!-- Outmode -->
-				<div class="text-center text-primary-800 dark:text-primary-500">{$game?.outMode} out</div>
 			</div>
 		</div>
 	</div>
 	{#if $game?.state === 'closed' && $game.turnIdx === index}
-		<!-- Input for multiplier -->
 		<div class="w-full grid grid-cols-3 my-5 gap-2">
 			<button
-				class="btn btn-lg rounded-lg {darts[i].x === 1 ? 'variant-ghost-primary' : 'variant-ghost'}"
+				class="btn btn-lg rounded-lg {darts[i].x === 1
+					? 'variant-ghost-primary'
+					: 'variant-ghost border-token border-surface-400-500-token'}"
 				on:click={async () => {
 					darts[i].x = 1;
 				}}
@@ -363,7 +363,9 @@
 				Single
 			</button>
 			<button
-				class="btn btn-lg rounded-lg {darts[i].x === 2 ? 'variant-ghost-primary' : 'variant-ghost'}"
+				class="btn btn-lg rounded-lg {darts[i].x === 2
+					? 'variant-ghost-primary'
+					: 'variant-ghost border-token border-surface-400-500-token'}"
 				on:click={async () => {
 					darts[i].x = darts[i].x === 2 ? 1 : 2;
 				}}
@@ -371,7 +373,9 @@
 				Double
 			</button>
 			<button
-				class="btn btn-lg rounded-lg {darts[i].x === 3 ? 'variant-ghost-primary' : 'variant-ghost'}"
+				class="btn btn-lg rounded-lg {darts[i].x === 3
+					? 'variant-ghost-primary'
+					: 'variant-ghost border-token border-surface-400-500-token'}"
 				disabled={(darts[i].s || 0) > 20}
 				on:click={async () => {
 					darts[i].x = darts[i].x === 3 ? 1 : 3;
@@ -380,12 +384,13 @@
 				Tripple
 			</button>
 		</div>
-		<!-- Input for dart fields -->
 		<div class="grid grid-cols-6 gap-2">
 			{#each possibleScores as score}
 				<button
 					class="btn btn-lg rounded-lg p-0 aspect-square
-					{darts[i].s === score ? 'variant-ghost-primary' : 'variant-ghost'}"
+					{darts[i].s === score
+						? 'variant-ghost-primary'
+						: 'variant-ghost border-token border-surface-400-500-token'}"
 					disabled={score === 25 && darts[i].x === 3}
 					on:click={async () => {
 						darts[i].s = darts[i].s === score ? null : score;

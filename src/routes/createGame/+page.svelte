@@ -2,15 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { signIn, createGame, joinGame, generateShortId } from '$lib/firebase';
 	import { isOnline, userName, gameID, game, players } from '$lib/stores';
-	import {
-		RadioGroup,
-		RadioItem,
-		SlideToggle,
-		RangeSlider,
-		ProgressRadial
-	} from '@skeletonlabs/skeleton';
+	import { RadioGroup, RadioItem, SlideToggle, RangeSlider } from '@skeletonlabs/skeleton';
 	import { errorToast, successToast } from '$lib/toast';
 	import { UserIcon } from 'svelte-feather-icons';
+
+	import Button from '$lib/components/Button.svelte';
+	import TextInput from '$lib/components/TextInput.svelte';
 
 	let gameForm: Game = {
 		gameMode: '301',
@@ -23,7 +20,6 @@
 	};
 	let onlineGame = true;
 	let playerNames: string[] = [];
-	let isLoading = false;
 
 	$: if (!onlineGame) playerNames.length = gameForm.size - 1;
 
@@ -32,7 +28,6 @@
 	 * Creates the game and then joins the player to it.
 	 */
 	async function handleJoinBtn() {
-		isLoading = true;
 		try {
 			if (!onlineGame || gameForm.size === 1) {
 				gameForm.state = 'closed';
@@ -76,38 +71,36 @@
 				err instanceof Error ? err.message : 'Unknown error while creating/joinging game.';
 			console.error(msg);
 			errorToast(msg);
-		} finally {
-			isLoading = false;
 		}
 	}
 </script>
 
-<div class="max-w-xs mx-auto">
-	<h3 class="h3 font-bold text-center mb-12">Settings</h3>
-	<div class="mb-6">
+<div class="max-w-xs mx-auto flex flex-col gap-7">
+	<div class="text-3xl text-center my-6">Settings</div>
+	<div>
 		<label class="block font-bold">
 			<div>Game Mode</div>
-			<select class="select w-full mt-2" bind:value={gameForm.gameMode}>
+			<select class="select w-full mt-2 pl-5" bind:value={gameForm.gameMode}>
 				<option value="301">301</option>
 				<option value="501">501</option>
 			</select>
 		</label>
 	</div>
-	<div class="mb-6">
+	<div>
 		<div class="font-bold text-md">Out Mode</div>
 		<RadioGroup class="grid grid-cols-2 mt-2" active="variant-filled-primary">
 			<RadioItem bind:group={gameForm.outMode} name="single" value="single">Single</RadioItem>
 			<RadioItem bind:group={gameForm.outMode} name="double" value="double">Double</RadioItem>
 		</RadioGroup>
 	</div>
-	<div class="mb-6">
+	<div>
 		<RangeSlider
 			name="range-slider"
 			bind:value={gameForm.legs}
 			min={1}
 			max={5}
 			ticked
-			accent="accent-primary-500"
+			accent="accent-primary-500 dark:accent-primary-500"
 		>
 			<div class="font-bold text-md">
 				First to {gameForm.legs}
@@ -115,14 +108,14 @@
 			</div>
 		</RangeSlider>
 	</div>
-	<div class="mb-6">
+	<div>
 		<RangeSlider
 			name="range-slider"
 			bind:value={gameForm.sets}
 			min={1}
 			max={5}
 			ticked
-			accent="accent-primary-500"
+			accent="accent-primary-500 dark:accent-primary-500"
 		>
 			<div class="font-bold text-md">
 				First to {gameForm.sets}
@@ -130,7 +123,7 @@
 			</div>
 		</RangeSlider>
 	</div>
-	<div class="mb-6">
+	<div>
 		<div class="font-bold text-md">Players</div>
 		<RadioGroup class="grid grid-cols-4 mt-2" active="variant-filled-primary">
 			<RadioItem bind:group={gameForm.size} name="one" value={1}>1</RadioItem>
@@ -140,43 +133,23 @@
 		</RadioGroup>
 	</div>
 	{#if gameForm.size > 1}
-		<div class="mb-6">
+		<div>
 			<SlideToggle name="slide" bind:checked={onlineGame} size="sm" active="bg-primary-500">
 				<span class="text-md font-bold">{onlineGame ? 'Online' : 'Offline'} Game</span>
 			</SlideToggle>
 		</div>
 		{#if !onlineGame}
-			<div class="mb-6">
-				<div class="text-md">Names</div>
+			<div>
+				<div class="text-md mb-5">Names</div>
 				{#each { length: gameForm.size - 1 } as _, i}
-					<div class="mt-2 input-group input-group-divider grid-cols-[1fr_auto]">
-						<input
-							class="input pl-4 rounded-br-none rounded-tr-none"
-							type="text"
-							name="player-{i + 2}-name"
-							autocomplete="on"
-							placeholder="Player {i + 2}"
-							bind:value={playerNames[i]}
-						/>
-						<div class="input-group-shim"><UserIcon /></div>
-					</div>
+					<TextInput text={playerNames[i]} name="player-{i + 2}-name" placeholder="Player {i + 2}">
+						<UserIcon />
+					</TextInput>
 				{/each}
 			</div>
 		{/if}
 	{/if}
-
-	<div>
-		<button
-			class="btn variant-filled-primary w-full py-2 px-4 mt-6"
-			type="button"
-			disabled={isLoading}
-			on:click={handleJoinBtn}
-		>
-			{#if isLoading}
-				<ProgressRadial stroke={120} width="w-6" />
-			{:else}
-				Create and Join
-			{/if}
-		</button>
+	<div class="mt-6">
+		<Button text="Create and Join" onClick={handleJoinBtn} />
 	</div>
 </div>

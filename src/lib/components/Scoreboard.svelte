@@ -10,11 +10,11 @@
 
 {#if game}
 	{#each [...players] as { name, remaining, avg, sets, legs }}
-		<h3 class="h3 font-bold text-center mb-4 text-primary-700">{name.slice(0, 8)}</h3>
-		<div class="table-container mb-4">
-			<table class="table table-hover">
+		<div class="table-container mb-4 border-token border-surface-400-500-token">
+			<h3 class="h3 text-center py-4 bg-primary-500 dark:bg-primary-800">{name}</h3>
+			<table class="table table-hover rounded-t-none">
 				<tbody>
-					<tr>
+					<tr class="border-t-[1px] border-surface-400">
 						<td class="text-center w-1/2">Sets</td>
 						<td class="text-center w-1/2">{sets}/{game.sets}</td>
 					</tr>

@@ -68,7 +68,6 @@
 	$: console.log('Players:', $players);
 
 	$: console.log('OffTurnPlayers:', offTurnPlayers);
-	
 
 	/**
 	 * Toggle the state of the camera.
@@ -82,11 +81,11 @@
 			console.log(`Toggling camera ${camOn ? 'off' : 'on'}.`);
 			camLoading = true;
 			if (!camOn) {
-				const camStream = await navigator.mediaDevices.getUserMedia({ 
-					video: { 
-						facingMode: "environment",
+				const camStream = await navigator.mediaDevices.getUserMedia({
+					video: {
+						facingMode: 'environment',
 						aspectRatio: 4 / 3
-					} 
+					}
 				});
 				camStream.getVideoTracks().forEach((track) => {
 					localStream.addTrack(track);
@@ -355,12 +354,12 @@
 	}
 
 	/**
-	 * 
+	 *
 	 * @param newSize
 	 */
 	function onNewSize(newSize: 1 | 2 | 3 | 4) {
 		if (!$game) return;
-		console.log('onNewSize')
+		console.log('onNewSize');
 		$game.size = newSize;
 		offTurnPlayers = $players.filter((p) => p.idx !== $game?.turnIdx);
 	}
@@ -396,7 +395,9 @@
 				// Add the component properties as key/value pairs
 				props: { background: 'bg-primary-500' },
 				// Provide a template literal for the default component slot
-				slot: `<p><span class="text-primary-900 text-white text-5xl">${$players[$game?.turnIdx || 0]?.name}</span></br> has won the match!</p>`
+				slot: `<p><span class="text-primary-900 text-white text-5xl">${
+					$players[$game?.turnIdx || 0]?.name
+				}</span></br> has won the match!</p>`
 			};
 			const modal: ModalSettings = {
 				type: 'component',
@@ -472,7 +473,7 @@
 
 		if (index > idx) index--;
 
-		const {pc, subs} = peer;
+		const { pc, subs } = peer;
 		pc.close();
 		subs.forEach((unsubscribe) => unsubscribe());
 		peers.delete(id);
@@ -481,7 +482,7 @@
 		remoteStream?.getTracks().forEach((track) => {
 			track.stop();
 			remoteStream.removeTrack(track);
-		})
+		});
 
 		const playerStateSub = playerStateSubs.get(id);
 		playerStateSub && playerStateSub();
@@ -542,216 +543,184 @@
 			</button>
 		{/if}
 		<RadioGroup class="grid grid-cols-3 w-full" active="variant-filled-primary">
-			<RadioItem
-				bind:group={mode}
-				name="chat"
-				value="chat"
-			>
-				Chat
-			</RadioItem>
+			<RadioItem bind:group={mode} name="chat" value="chat">Chat</RadioItem>
 			<RadioItem bind:group={mode} name="score" value="score">Score</RadioItem>
-			<RadioItem
-				bind:group={mode}
-				name="table"
-				value="table"
-			>
-				Table
-			</RadioItem>
+			<RadioItem bind:group={mode} name="table" value="table">Table</RadioItem>
 		</RadioGroup>
-		<div class="relative w-full">
-			{#if mode === 'chat'}
-				<div class="absolute w-full">
-					{#if $players[$game.turnIdx]}
-						<div class="rounded-lg overflow-hidden flex flex-col">
-							<!-- Uppder Area: Camera or Dummy/Profile Picture -->
-							<div class="aspect-[4/3] overflow-hidden">
-								<VideoPlayer stream={streams.get(onTurnPlayerId)} id={onTurnPlayerId} />
-							</div>
-							<!-- Lower Area: Thrown Darts, Name, Legs & Sets, Remaining, Outmode -->
-							<div
-								class="w-full bg-primary-500 py-4 px-6 flex flex-col justify-between text-white gap-3"
-							>
-								<!-- Thrown Darts -->
-								<div class="grid grid-cols-3 gap-4">
-									{#each $players[$game.turnIdx].darts as dart, idx}
-										<div
-											class="rounded-lg h-9 flex justify-center items-center py-1 {idx ===
-											$players[$game.turnIdx].dartIdx
-												? 'bg-white border-primary-800 border-2 text-primary-800'
-												: 'bg-primary-800 border-primary-800 border-2 text-white'}"
-										>
-											{#if dart.s === null}
-												<DartSVG fill={idx === $players[$game.turnIdx].dartIdx ? '#16805c' : 'white'} />
-											{:else}
-												<span>{dartStr($players[$game.turnIdx].darts[idx])}</span>
-											{/if}
-										</div>
-									{/each}
-								</div>
-								<!-- Name, Legs & Sets, Remaining, Outmode -->
-								<div class="flex flex-row justify-around">
-									<!-- Name, Legs & Sets -->
-									<div class="flex flex-col gap-2">
-										<h3 class="h3">{$players[$game.turnIdx].name}</h3>
-										<div class="flex flex-row gap-2 justify-start items-center">
-											<div class="w-10 text-primary-800">Legs</div>
-											<Ratings
-												bind:value={$players[$game.turnIdx].legs}
-												max={$game?.legs}
-												fill="fill-white"
-											>
-												<svelte:fragment slot="full">
-													<svg
-														class="w-5 md:w-5 lg:w-5 aspect-square"
-														xmlns="http://www.w3.org/2000/svg"
-														viewBox="0 0 512 512"
-														><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
-													</svg>
-												</svelte:fragment>
-												<svelte:fragment slot="half">
-													<svg
-														class="w-5 md:w-5 lg:w-5 aspect-square"
-														xmlns="http://www.w3.org/2000/svg"
-														viewBox="0 0 512 512"
-														><path
-															d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
-														/>
-													</svg>
-												</svelte:fragment>
-												<svelte:fragment slot="empty">
-													<svg
-														class="w-5 md:w-5 lg:w-5 aspect-square"
-														xmlns="http://www.w3.org/2000/svg"
-														viewBox="0 0 512 512"
-													>
-														<path
-															d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
-														/>
-													</svg>
-												</svelte:fragment>
-											</Ratings>
-										</div>
-										<div class="flex flex-row gap-2 justify-start items-center">
-											<div class="w-10 text-primary-800">Sets</div>
-											<Ratings
-												bind:value={$players[$game.turnIdx].sets}
-												max={$game?.sets}
-												fill="fill-white"
-											>
-												<svelte:fragment slot="full">
-													<svg
-														class="w-5 md:w-5 lg:w-5 aspect-square"
-														xmlns="http://www.w3.org/2000/svg"
-														viewBox="0 0 512 512"
-														><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
-													</svg>
-												</svelte:fragment>
-												<svelte:fragment slot="half">
-													<svg
-														class="w-5 md:w-5 lg:w-5 aspect-square"
-														xmlns="http://www.w3.org/2000/svg"
-														viewBox="0 0 512 512"
-														><path
-															d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
-														/>
-													</svg>
-												</svelte:fragment>
-												<svelte:fragment slot="empty">
-													<svg
-														class="w-5 md:w-5 lg:w-5 aspect-square"
-														xmlns="http://www.w3.org/2000/svg"
-														viewBox="0 0 512 512"
-													>
-														<path
-															d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
-														/>
-													</svg>
-												</svelte:fragment>
-											</Ratings>
-										</div>
-									</div>
-									<!-- Remaining, Outmode -->
-									<div class="flex flex-col justify-center">
-										<div class="text-primary-800">{$game?.outMode} out</div>
-										<div class="text-6xl">{$players[$game.turnIdx].remaining}</div>
-									</div>
-								</div>
-							</div>
-						</div>
-					{/if}
-					{#if offTurnPlayers}
-						<div class="grid grid-cols-3 gap-4 mt-4">
-							{#each [...offTurnPlayers] as { name, remaining, id }}
+		{#if mode === 'chat'}
+			{#if $players[$game.turnIdx]}
+				<div class="w-full rounded-lg overflow-hidden">
+					<div class="aspect-[4/3] overflow-hidden">
+						<VideoPlayer stream={streams.get(onTurnPlayerId)} id={onTurnPlayerId} />
+					</div>
+					<div class="bg-primary-500 p-7 text-white">
+						<div class="grid grid-cols-3 gap-4">
+							{#each $players[$game.turnIdx].darts as dart, idx}
 								<div
-									class="relative aspect-square rounded-lg overflow-hidden bg-[url('/dummy.png')] bg-cover"
+									class="rounded-lg h-9 flex justify-center items-center py-1 {idx ===
+									$players[$game.turnIdx].dartIdx
+										? 'bg-white border-primary-800 border-2 text-primary-800'
+										: 'bg-primary-800 border-primary-800 border-2 text-white'}"
 								>
-									<VideoPlayer stream={streams.get(id || '')} id={id || ''} />
-									<div
-										class="w-full container variant-filled absolute bottom-0 flex flex-row justify-between items-center py-1 px-2 bg-surface-500"
-									>
-										<div>{name}</div>
-										<div>{remaining}</div>
-									</div>
+									{#if dart.s === null}
+										<DartSVG fill={idx === $players[$game.turnIdx].dartIdx ? '#16805c' : 'white'} />
+									{:else}
+										<span>{dartStr($players[$game.turnIdx].darts[idx])}</span>
+									{/if}
 								</div>
 							{/each}
 						</div>
-					{/if}
-					<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
-						<button
-							class="btn-icon btn-icon-xl {!camOn
-								? 'variant-filled-error'
-								: 'variant-filled-secondary'}"
-							type="button"
-							disabled={camLoading}
-							on:click={handleCamBtn}
-						>
-							{#if camLoading}
-								<ProgressRadial />
-							{:else if !camOn}
-								<CameraOffIcon />
-							{:else}
-								<CameraIcon />
-							{/if}
-						</button>
-						<button
-							class="btn-icon btn-icon-xl {!micOn
-								? 'variant-filled-error'
-								: 'variant-filled-secondary'}"
-							type="button"
-							disabled={micLoading}
-							on:click={handleMicBtn}
-						>
-							{#if micLoading}
-								<ProgressRadial />
-							{:else if !micOn}
-								<MicOffIcon />
-							{:else}
-								<MicIcon />
-							{/if}
-						</button>
-						<button
-							class="btn-icon btn-icon-xl variant-filled-error"
-							type="button"
-							disabled={leaveLoading}
-							on:click={handleLeaveBtn}
-						>
-							{#if leaveLoading}
-								<ProgressRadial />
-							{:else}
-								<LogOutIcon />
-							{/if}
-						</button>
+						<div class="flex flex-row justify-around mt-6">
+							<div class="flex flex-col gap-2">
+								<h3 class="h3">{$players[$game.turnIdx].name}</h3>
+								<div class="flex flex-row gap-2 justify-start items-center">
+									<div class="w-10 text-primary-800">Legs</div>
+									<Ratings
+										bind:value={$players[$game.turnIdx].legs}
+										max={$game?.legs}
+										fill="fill-white"
+									>
+										<svelte:fragment slot="full">
+											<svg
+												class="w-5 md:w-5 lg:w-5 aspect-square"
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 512 512"
+												><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
+											</svg>
+										</svelte:fragment>
+										<svelte:fragment slot="half">
+											<svg
+												class="w-5 md:w-5 lg:w-5 aspect-square"
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 512 512"
+												><path
+													d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+												/>
+											</svg>
+										</svelte:fragment>
+										<svelte:fragment slot="empty">
+											<svg
+												class="w-5 md:w-5 lg:w-5 aspect-square"
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 512 512"
+											>
+												<path
+													d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+												/>
+											</svg>
+										</svelte:fragment>
+									</Ratings>
+								</div>
+								<div class="flex flex-row gap-2 justify-start items-center">
+									<div class="w-10 text-primary-800">Sets</div>
+									<Ratings
+										bind:value={$players[$game.turnIdx].sets}
+										max={$game?.sets}
+										fill="fill-white"
+									>
+										<svelte:fragment slot="full">
+											<svg
+												class="w-5 md:w-5 lg:w-5 aspect-square"
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 512 512"
+												><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
+											</svg>
+										</svelte:fragment>
+										<svelte:fragment slot="half">
+											<svg
+												class="w-5 md:w-5 lg:w-5 aspect-square"
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 512 512"
+												><path
+													d="M448 256c0-106-86-192-192-192V448c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+												/>
+											</svg>
+										</svelte:fragment>
+										<svelte:fragment slot="empty">
+											<svg
+												class="w-5 md:w-5 lg:w-5 aspect-square"
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 512 512"
+											>
+												<path
+													d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"
+												/>
+											</svg>
+										</svelte:fragment>
+									</Ratings>
+								</div>
+							</div>
+							<div class="flex flex-col justify-center">
+								<div class="text-primary-800">{$game?.outMode} out</div>
+								<div class="text-6xl">{$players[$game.turnIdx].remaining}</div>
+							</div>
+						</div>
 					</div>
 				</div>
-			{:else if mode === 'score'}
-				<div class="absolute w-full">
-					<ScoreInput {index} />
-				</div>
-			{:else}
-				<div class="absolute w-full">
-					<Scoreboard game={$game} players={$players} />
+			{/if}
+			{#if offTurnPlayers}
+				<div class="grid grid-cols-3 gap-4 mt-4">
+					{#each [...offTurnPlayers] as { name, remaining, id }}
+						<div
+							class="relative aspect-square rounded-lg overflow-hidden bg-[url('/dummy.png')] bg-cover"
+						>
+							<VideoPlayer stream={streams.get(id || '')} id={id || ''} />
+							<div
+								class="bg-surface-100 dark:bg-surface-800 w-full absolute bottom-0 flex flex-row justify-between items-center py-1 px-2"
+							>
+								<div>{name}</div>
+								<div>{remaining}</div>
+							</div>
+						</div>
+					{/each}
 				</div>
 			{/if}
-		</div>
+			<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
+				<button
+					class="btn-icon btn-icon-xl {!camOn ? 'variant-filled-error' : 'variant-filled-primary'}"
+					type="button"
+					disabled={camLoading}
+					on:click={handleCamBtn}
+				>
+					{#if camLoading}
+						<ProgressRadial />
+					{:else if !camOn}
+						<CameraOffIcon />
+					{:else}
+						<CameraIcon />
+					{/if}
+				</button>
+				<button
+					class="btn-icon btn-icon-xl {!micOn ? 'variant-filled-error' : 'variant-filled-primary'}"
+					type="button"
+					disabled={micLoading}
+					on:click={handleMicBtn}
+				>
+					{#if micLoading}
+						<ProgressRadial />
+					{:else if !micOn}
+						<MicOffIcon />
+					{:else}
+						<MicIcon />
+					{/if}
+				</button>
+				<button
+					class="btn-icon btn-icon-xl variant-filled-error"
+					type="button"
+					disabled={leaveLoading}
+					on:click={handleLeaveBtn}
+				>
+					{#if leaveLoading}
+						<ProgressRadial />
+					{:else}
+						<LogOutIcon />
+					{/if}
+				</button>
+			</div>
+		{:else if mode === 'score'}
+			<ScoreInput {index} />
+		{:else}
+			<Scoreboard game={$game} players={$players} />
+		{/if}
 	</div>
 {/if}

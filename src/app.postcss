@@ -1,111 +1,5 @@
-/*place global styles here */
+/* place global styles here */
 
-@font-face {
-	/* Reference name */
-	font-family: 'Barlow';
-	/* For multiple files use commas, ex: url(), url(), ... */
-	src: url('/fonts/Barlow-Medium.ttf'), url('/fonts/Barlow-Bold.ttf'),
-		url('/fonts/Barlow-ExtraBold.ttf'), url('/fonts/Barlow-ExtraLight.ttf'),
-		url('/fonts/Barlow-Light.ttf'), url('/fonts/Barlow-Medium.ttf'),
-		url('/fonts/Barlow-SemiBold.ttf'), url('/fonts/Barlow-Thin.ttf');
-}
-
-:root {
-	/* =~= Theme Properties =~= */
-	--theme-font-family-base: 'Barlow', sans-serif;
-	--theme-font-family-heading: 'Barlow', sans-serif;
-	--theme-font-color-base: 0 0 0;
-	--theme-font-color-dark: 255 255 255;
-	--theme-rounded-base: 9999px;
-	--theme-rounded-container: 8px;
-	--theme-border-base: 1px;
-	/* =~= Theme On-X Colors =~= */
-	--on-primary: 0 0 0;
-	--on-secondary: 0 0 0;
-	--on-tertiary: 0 0 0;
-	--on-success: 0 0 0;
-	--on-warning: 0 0 0;
-	--on-error: 0 0 0;
-	--on-surface: 0 0 0;
-	/* =~= Theme Colors  =~= */
-	/* primary | #25D699 */
-	--color-primary-50: 222 249 240; /* ⬅ #def9f0 */
-	--color-primary-100: 211 247 235; /* ⬅ #d3f7eb */
-	--color-primary-200: 201 245 230; /* ⬅ #c9f5e6 */
-	--color-primary-300: 168 239 214; /* ⬅ #a8efd6 */
-	--color-primary-400: 102 226 184; /* ⬅ #66e2b8 */
-	--color-primary-500: 37 214 153; /* ⬅ #25D699 */
-	--color-primary-600: 33 193 138; /* ⬅ #21c18a */
-	--color-primary-700: 28 161 115; /* ⬅ #1ca173 */
-	--color-primary-800: 22 128 92; /* ⬅ #16805c */
-	--color-primary-900: 18 105 75; /* ⬅ #12694b */
-	/* secondary | #00BAA1 */
-	--color-secondary-50: 217 245 241; /* ⬅ #d9f5f1 */
-	--color-secondary-100: 204 241 236; /* ⬅ #ccf1ec */
-	--color-secondary-200: 191 238 232; /* ⬅ #bfeee8 */
-	--color-secondary-300: 153 227 217; /* ⬅ #99e3d9 */
-	--color-secondary-400: 77 207 189; /* ⬅ #4dcfbd */
-	--color-secondary-500: 0 186 161; /* ⬅ #00BAA1 */
-	--color-secondary-600: 0 167 145; /* ⬅ #00a791 */
-	--color-secondary-700: 0 140 121; /* ⬅ #008c79 */
-	--color-secondary-800: 0 112 97; /* ⬅ #007061 */
-	--color-secondary-900: 0 91 79; /* ⬅ #005b4f */
-	/* tertiary | #009D9E */
-	--color-tertiary-50: 217 240 240; /* ⬅ #d9f0f0 */
-	--color-tertiary-100: 204 235 236; /* ⬅ #ccebec */
-	--color-tertiary-200: 191 231 231; /* ⬅ #bfe7e7 */
-	--color-tertiary-300: 153 216 216; /* ⬅ #99d8d8 */
-	--color-tertiary-400: 77 186 187; /* ⬅ #4dbabb */
-	--color-tertiary-500: 0 157 158; /* ⬅ #009D9E */
-	--color-tertiary-600: 0 141 142; /* ⬅ #008d8e */
-	--color-tertiary-700: 0 118 119; /* ⬅ #007677 */
-	--color-tertiary-800: 0 94 95; /* ⬅ #005e5f */
-	--color-tertiary-900: 0 77 77; /* ⬅ #004d4d */
-	/* success | #25D699 */
-	--color-success-50: 222 249 240; /* ⬅ #def9f0 */
-	--color-success-100: 211 247 235; /* ⬅ #d3f7eb */
-	--color-success-200: 201 245 230; /* ⬅ #c9f5e6 */
-	--color-success-300: 168 239 214; /* ⬅ #a8efd6 */
-	--color-success-400: 102 226 184; /* ⬅ #66e2b8 */
-	--color-success-500: 37 214 153; /* ⬅ #25D699 */
-	--color-success-600: 33 193 138; /* ⬅ #21c18a */
-	--color-success-700: 28 161 115; /* ⬅ #1ca173 */
-	--color-success-800: 22 128 92; /* ⬅ #16805c */
-	--color-success-900: 18 105 75; /* ⬅ #12694b */
-	/* warning | #FFDF2A */
-	--color-warning-50: 255 250 223; /* ⬅ #fffadf */
-	--color-warning-100: 255 249 212; /* ⬅ #fff9d4 */
-	--color-warning-200: 255 247 202; /* ⬅ #fff7ca */
-	--color-warning-300: 255 242 170; /* ⬅ #fff2aa */
-	--color-warning-400: 255 233 106; /* ⬅ #ffe96a */
-	--color-warning-500: 255 223 42; /* ⬅ #FFDF2A */
-	--color-warning-600: 230 201 38; /* ⬅ #e6c926 */
-	--color-warning-700: 191 167 32; /* ⬅ #bfa720 */
-	--color-warning-800: 153 134 25; /* ⬅ #998619 */
-	--color-warning-900: 125 109 21; /* ⬅ #7d6d15 */
-	/* error | #FF3E3E */
-	--color-error-50: 255 226 226; /* ⬅ #ffe2e2 */
-	--color-error-100: 255 216 216; /* ⬅ #ffd8d8 */
-	--color-error-200: 255 207 207; /* ⬅ #ffcfcf */
-	--color-error-300: 255 178 178; /* ⬅ #ffb2b2 */
-	--color-error-400: 255 120 120; /* ⬅ #ff7878 */
-	--color-error-500: 255 62 62; /* ⬅ #FF3E3E */
-	--color-error-600: 230 56 56; /* ⬅ #e63838 */
-	--color-error-700: 191 47 47; /* ⬅ #bf2f2f */
-	--color-error-800: 153 37 37; /* ⬅ #992525 */
-	--color-error-900: 125 30 30; /* ⬅ #7d1e1e */
-	/* surface | #CCCCCC */
-	--color-surface-50: 247 247 247; /* ⬅ #f7f7f7 */
-	--color-surface-100: 245 245 245; /* ⬅ #f5f5f5 */
-	--color-surface-200: 242 242 242; /* ⬅ #f2f2f2 */
-	--color-surface-300: 235 235 235; /* ⬅ #ebebeb */
-	--color-surface-400: 219 219 219; /* ⬅ #dbdbdb */
-	--color-surface-500: 204 204 204; /* ⬅ #CCCCCC */
-	--color-surface-600: 184 184 184; /* ⬅ #b8b8b8 */
-	--color-surface-700: 153 153 153; /* ⬅ #999999 */
-	--color-surface-800: 122 122 122; /* ⬅ #7a7a7a */
-	--color-surface-900: 100 100 100; /* ⬅ #646464 */
-}
 html,
 body {
 	@apply h-full;
@@ -156,4 +50,76 @@ progress[value]::-webkit-progress-bar {
 
 progress[value]::-webkit-progress-value {
 	background-color: white;
+}
+
+.input,
+.textarea,
+.select,
+.input-group,
+.border-surface-400-500-token {
+	background-color: rgb(var(--color-surface-100));
+}
+
+.dark :is(.input, .textarea, .select, .input-group, .bg-surface-200-700-token) {
+	background-color: rgb(var(--color-surface-800));
+}
+
+.lightswitch-track {
+	background-color: rgb(var(--color-surface-50));
+}
+
+.lightswitch-track > div {
+	background-color: rgb(var(--color-surface-900));
+}
+
+.lightswitch-track > div > svg {
+	fill: rgb(var(--color-surface-100));
+}
+
+.dark .lightswitch-track {
+	background-color: rgb(var(--color-surface-900));
+}
+
+.dark .lightswitch-track > div {
+	background-color: rgb(var(--color-surface-50));
+}
+
+.dark .lightswitch-track > div > svg {
+	fill: rgb(var(--color-surface-800));
+}
+
+.slide-toggle .slide-toggle-track.bg-surface-400 {
+	background-color: rgb(var(--color-surface-200));
+}
+
+.dark .slide-toggle .slide-toggle-track.dark\:bg-surface-700 {
+	background-color: rgb(var(--color-surface-700));
+}
+
+.btn.variant-ghost {
+	background-color: rgb(var(--color-surface-100));
+}
+
+.dark .btn.variant-ghost {
+	background-color: rgb(var(--color-surface-800));
+}
+
+.bg-surface-100 {
+	background-color: rgb(var(--color-surface-100));
+}
+
+:is(.dark .dark\:bg-surface-800) {
+	background-color: rgb(var(--color-surface-800));
+}
+
+.dark .card.bg-primary-500 {
+	background-color: rgb(var(--color-primary-500));
+}
+
+.table tbody tr {
+	border-color: rgb(var(--color-surface-400));
+}
+
+.border-t-surface-400 {
+	border-color: rgb(var(--color-surface-400));
 }
