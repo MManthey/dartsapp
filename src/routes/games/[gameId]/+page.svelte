@@ -209,11 +209,29 @@
 		const servers = {
 			iceServers: [
 				{
-					urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']
-					// turn server ??? -> https://www.metered.ca/tools/openrelay/
+					urls: 'stun:stun.relay.metered.ca:80'
+				},
+				{
+					urls: 'turn:a.relay.metered.ca:80',
+					username: '116b3e20b7ed5dbd0f2d0052',
+					credential: 'iHfS6C8BFvPXBRgx'
+				},
+				{
+					urls: 'turn:a.relay.metered.ca:80?transport=tcp',
+					username: '116b3e20b7ed5dbd0f2d0052',
+					credential: 'iHfS6C8BFvPXBRgx'
+				},
+				{
+					urls: 'turn:a.relay.metered.ca:443',
+					username: '116b3e20b7ed5dbd0f2d0052',
+					credential: 'iHfS6C8BFvPXBRgx'
+				},
+				{
+					urls: 'turn:a.relay.metered.ca:443?transport=tcp',
+					username: '116b3e20b7ed5dbd0f2d0052',
+					credential: 'iHfS6C8BFvPXBRgx'
 				}
-			],
-			iceCandidatePoolSize: 10
+			]
 		};
 
 		const pc = new RTCPeerConnection(servers);
