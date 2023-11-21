@@ -259,7 +259,7 @@
 	}
 </script>
 
-<div class="card p-7 bg-primary-500 text-white">
+<div class="w-full card p-7 bg-primary-500 text-white">
 	<div class="grid grid-cols-3 gap-4">
 		{#each darts as dart, idx}
 			<div
