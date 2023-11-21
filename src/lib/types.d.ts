@@ -16,15 +16,18 @@ declare interface Player {
 	legs: number;
 }
 
+type GameSize = 1 | 2 | 3 | 4;
+type GameState = 'open' | 'closed' | 'over';
+
 declare interface Game {
 	shortId?: string;
 	gameMode: '301' | '501';
 	outMode: 'single' | 'double';
 	sets: number,
 	legs: number,
-	size: 1 | 2 | 3 | 4;
+	size: GameSize;
 	turnIdx: number;
-	state: 'open' | 'closed' | 'over';
+	state: GameState;
 }
 
 interface SessionDescription {

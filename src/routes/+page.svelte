@@ -1,16 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { isOnline, userName, gameID, game, players } from '$lib/stores';
+	import { isOnline, userName, gameId, game, players } from '$lib/stores';
 	import { signIn, joinGame } from '$lib/firebase';
 	import { errorToast } from '$lib/toast';
 	import { UserIcon, HashIcon } from 'svelte-feather-icons';
 
 	import TextInput from '$lib/components/TextInput.svelte';
 	import Button from '$lib/components/Button.svelte';
-
-	$gameID = '';
-	$game = null;
-	$players = [];
 
 	let shortId = '';
 	$: shortId = shortId?.toUpperCase();
@@ -22,7 +18,7 @@
 			}
 			await signIn();
 			await joinGame(shortId);
-			goto(`/games/${$gameID}`);
+			goto(`/games/${$gameId}`);
 		} catch (err: any) {
 			errorToast(err.message);
 		}
@@ -43,6 +39,6 @@
 	</TextInput>
 	<div class="flex space-x-4 mt-6">
 		<Button text="Create" disabled={!$userName} onClick={handleCreateBtn} />
-		<Button text="Join" disabled={!$userName || shortId.length !== 6} onClick={handleJoinBtn} />
+		<Button text="Join" disabled={!$userName || shortId.length !== 4} onClick={handleJoinBtn} />
 	</div>
 </div>

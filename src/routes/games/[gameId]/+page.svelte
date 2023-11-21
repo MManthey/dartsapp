@@ -20,7 +20,7 @@
 	} from 'svelte-feather-icons';
 
 	import { errorToast, successToast } from '$lib/toast';
-	import { userID, gameID, game, players } from '$lib/stores';
+	import { userId, gameId, game, players } from '$lib/stores';
 	import {
 		sendCandidate,
 		sendMessage,
@@ -55,7 +55,6 @@
 	let peers: Map<string, Peer> = new Map();
 	let streams: Map<string, MediaStream> = new Map();
 	let onTurnPlayerId: string;
-
 	let offTurnPlayers: Player[];
 	let mode = 'chat';
 
@@ -63,48 +62,47 @@
 		onTurnPlayerId = $players[$game.turnIdx].id || '';
 	}
 
-	$: console.log('Game:', $game);
+	// $: console.log('index:', index);
+	// $: console.log('camOn:', camOn);
+	// $: console.log('micOn:', micOn);
+	// $: console.log('peers:', peers);
+	$: streams.forEach((stream, id) =>
+		console.log(
+			`${id}:`,
+			stream
+				.getTracks()
+				.map((track) => `${track.kind}`)
+				.join(', ')
+		)
+	);
+	// $: console.log('onTurnPlayerId:', onTurnPlayerId);
+	// $: console.log('offTurnPlayers:', offTurnPlayers);
+	// $: console.log('mode:', mode);
 
-	$: console.log('Players:', $players);
-
-	$: console.log('OffTurnPlayers:', offTurnPlayers);
-
-	/**
-	 * Toggle the state of the camera.
-	 * If the camera is off, it will be turned on, and vice versa.
-	 */
-	async function handleCamBtn() {
+	async function handleCamBtn(): Promise<void> {
 		try {
-			const localStream = streams.get($userID);
+			const localStream = streams.get($userId);
 			if (!localStream) return;
 
-			console.log(`Toggling camera ${camOn ? 'off' : 'on'}.`);
 			camLoading = true;
 			if (!camOn) {
-				const camStream = await navigator.mediaDevices.getUserMedia({
-					video: {
-						facingMode: 'environment',
-						aspectRatio: 4 / 3
-					}
-				});
+				const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
 				camStream.getVideoTracks().forEach((track) => {
 					localStream.addTrack(track);
-					for (let { pc } of peers.values()) {
-						pc.addTrack(track);
-					}
+					peers.forEach(({ pc }) => pc.addTrack(track));
 				});
 			} else {
 				localStream.getVideoTracks().forEach((track) => {
 					track.stop();
 					localStream.removeTrack(track);
-					for (let { pc } of peers.values()) {
+					peers.forEach(({ pc }) => {
 						let sender = pc.getSenders().find((s) => s.track === track);
 						sender && pc.removeTrack(sender);
-					}
+					});
 				});
 			}
 			camOn = !camOn;
-			streams = streams.set($userID, localStream);
+			streams = streams.set($userId, localStream);
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Unknown error while toggling the camera.';
 			console.error(msg);
@@ -114,37 +112,31 @@
 		}
 	}
 
-	/**
-	 *
-	 */
-	async function handleMicBtn() {
+	async function handleMicBtn(): Promise<void> {
 		micLoading = true;
 		try {
-			const localStream = streams.get($userID);
+			const localStream = streams.get($userId);
 			if (!localStream) return;
 
-			console.log(`Toggling microphone ${micOn ? 'off' : 'on'}.`);
 			micLoading = true;
 			if (!micOn) {
 				const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 				micStream.getAudioTracks().forEach((track) => {
 					localStream.addTrack(track);
-					for (let { pc } of peers.values()) {
-						pc.addTrack(track);
-					}
+					peers.forEach(({ pc }) => pc.addTrack(track));
 				});
 			} else {
 				localStream.getAudioTracks().forEach((track) => {
 					track.stop();
 					localStream.removeTrack(track);
-					for (let { pc } of peers.values()) {
+					peers.forEach(({ pc }) => {
 						let sender = pc.getSenders().find((s) => s.track === track);
 						sender && pc.removeTrack(sender);
-					}
+					});
 				});
 			}
 			micOn = !micOn;
-			streams = streams.set($userID, localStream);
+			streams = streams.set($userId, localStream);
 		} catch (err: unknown) {
 			const msg =
 				err instanceof Error ? err.message : 'Unknown error while toggling the microphone.';
@@ -155,13 +147,9 @@
 		}
 	}
 
-	/**
-	 *
-	 */
-	async function handleLeaveBtn() {
+	async function handleLeaveBtn(): Promise<void> {
 		leaveLoading = true;
 		try {
-			console.log('Leaving game.');
 			if (!$game) {
 				throw new Error('Game was undefined before leaving game.');
 			}
@@ -175,7 +163,7 @@
 					const turnIdx =
 						$game.turnIdx === $game.size - 1 || $game.state === 'open' ? 0 : $game.turnIdx;
 					await deletePlayer();
-					const size = ($players.length - 1) as 1 | 2 | 3 | 4;
+					const size = ($players.length - 1) as GameSize;
 					await updateGame({ ...$game, size, turnIdx });
 					for (let i = index + 1; i < $players.length; i++) {
 						await updatePlayer({ ...$players[i], idx: i - 1 }, $players[i].id);
@@ -188,24 +176,19 @@
 			errorToast(msg);
 		} finally {
 			$game = null;
-			$gameID = '';
+			$gameId = '';
 			$players = [];
 			leaveLoading = false;
 			goto('/');
 		}
 	}
 
-	/**
-	 *
-	 * @param playerID
-	 * @param stream
-	 */
-	function connect(id: string) {
-		const localStream = streams.get($userID);
+	function connect(id: string): void {
+		console.log('connect');
+		const localStream = streams.get($userId);
 		if (!localStream) return;
 
-		console.log(`Connecting to ${id}.`);
-
+		// https://dashboard.metered.ca
 		const servers = {
 			iceServers: [
 				{
@@ -238,8 +221,22 @@
 		const remoteStream = new MediaStream();
 		const subs: (() => void)[] = [];
 
+		// pc.oniceconnectionstatechange = () => {
+		// 	console.log(`ICE Connection State: ${pc.iceConnectionState}`);
+		// };
+		pc.onsignalingstatechange = () => {
+			console.log(`Signaling State: ${pc.signalingState}`);
+		};
+		// pc.onicegatheringstatechange = () => {
+		// 	console.log(`ICE Gathering State: ${pc.iceGatheringState}`);
+		// };
+		pc.onconnectionstatechange = () => {
+			console.log(`Connection State: ${pc.connectionState}`);
+		};
+
 		// add any initial tracks to the pc
 		localStream.getTracks().forEach((track) => {
+			console.log(`sending ${track.kind} to`);
 			pc.addTrack(track);
 		});
 
@@ -267,11 +264,13 @@
 			const peer = peers.get(id);
 			if (!peer) return;
 			track.onmute = () => {
+				console.log(`${id} removed ${track.kind}`);
 				remoteStream.removeTrack(track);
-				streams = streams.set(id, remoteStream); // rerender
+				streams = streams.set(id, remoteStream);
 			};
+			console.log(`receiving ${track.kind} from ${id}`);
 			remoteStream.addTrack(track);
-			streams = streams.set(id, remoteStream); // rerender
+			streams = streams.set(id, remoteStream);
 		};
 
 		// listen for new remote candidates being added
@@ -308,15 +307,8 @@
 		peers = peers.set(id, { pc, subs });
 	}
 
-	/**
-	 *
-	 * @param id
-	 * @param idx
-	 * @param stream
-	 */
-	function disconnect(id: string) {
-		console.log(`Disconnecting to ${id}.`);
-
+	function disconnect(id: string): void {
+		console.log('disconnect');
 		const peer = peers.get(id);
 		peer?.pc.close();
 		peer?.subs.forEach((unsubscribe) => unsubscribe());
@@ -328,13 +320,9 @@
 			stream.removeTrack(track);
 		});
 		streams.delete(id);
-		console.log(`Disconnect completed.`);
 	}
 
-	/**
-	 *
-	 */
-	async function copyShortId() {
+	async function copyShortId(): Promise<void> {
 		// $game must be set
 		if (!$game) return;
 
@@ -348,47 +336,33 @@
 		}
 	}
 
-	/**
-	 *
-	 */
-	function cleanup() {
+	function cleanup(): void {
 		subscriptions.forEach((unsubscribe) => unsubscribe());
 
-		for (let stream of streams.values()) {
+		streams.forEach((stream) => {
 			stream.getTracks().forEach((track) => {
 				track.stop();
 				stream.removeTrack(track);
 			});
-		}
+		});
 
-		for (let { pc, subs } of peers.values()) {
+		peers.forEach(({ pc, subs }) => {
 			pc.close();
 			subs.forEach((unsubscribe) => unsubscribe());
-		}
+		});
 
-		for (let playerStateSub of playerStateSubs.values()) {
-			playerStateSub();
-		}
+		playerStateSubs.forEach((playerStateSub) => playerStateSub());
 	}
 
-	/**
-	 *
-	 * @param newSize
-	 */
-	function onNewSize(newSize: 1 | 2 | 3 | 4) {
+	function onNewGameSize(newSize: GameSize): void {
 		if (!$game) return;
-		console.log('onNewSize');
 		$game.size = newSize;
 		offTurnPlayers = $players.filter((p) => p.idx !== $game?.turnIdx);
 	}
 
-	/**
-	 * This should not check for the game state as it will be updated after the turn.
-	 * @param newTurnIdx
-	 */
-	function onNewTurn(newTurnIdx: number) {
-		if (!$game) return;
+	function onNewTurn(newTurnIdx: number): void {
 		console.log('onNewTurn');
+		if (!$game) return;
 		const oldPlayer = $players[$game.turnIdx];
 		if (oldPlayer) successToast(`${oldPlayer.name} scored ${oldPlayer.scores.slice(-1)}.`);
 		$game.turnIdx = newTurnIdx;
@@ -397,13 +371,9 @@
 		offTurnPlayers = $players.filter((p) => p.idx !== newTurnIdx);
 	}
 
-	/**
-	 *
-	 * @param newState
-	 */
-	function onNewState(newState: 'open' | 'closed' | 'over') {
+	function onNewGameState(newState: GameState): void {
+		console.log('onNewGameState');
 		if (!$game) return;
-		console.log('onNewState');
 		if (newState === 'closed' && $game?.turnIdx === index) {
 			mode = 'score';
 		} else if (newState === 'over') {
@@ -427,25 +397,18 @@
 		$game.state = newState;
 	}
 
-	/**
-	 *
-	 * @param id
-	 * @param idx
-	 * @param data
-	 * @param initialLoad
-	 */
-	function onPlayerJoin(id: string, idx: number, data: DocumentData, initialLoad: boolean) {
+	function onPlayerJoin(id: string, idx: number, data: DocumentData, initialLoad: boolean): void {
 		console.log('onPlayerJoin');
-		const isUser = id === $userID;
+		const isUser = id === $userId;
 		const player = { id, ...data } as Player;
 
 		if (!isUser) {
 			playerStateSubs.set(
 				id,
-				onPlayerState(id, async (state) => {
-					if (state === 'online') {
+				onPlayerState(id, (state) => {
+					if (state === 'online' && peers.get(id) === undefined) {
 						connect(id);
-					} else {
+					} else if (state === 'offline' && peers.get(id) !== undefined) {
 						disconnect(id);
 					}
 				})
@@ -462,32 +425,20 @@
 		}
 	}
 
-	/**
-	 *
-	 * @param idx
-	 */
 	function onPlayerChange(idx: number, data: DocumentData) {
 		console.log('onPlayerChange');
 		const oldPlayer = $players[idx];
 		const newPlayer = { ...oldPlayer, ...data };
-		// console.log(`${newPlayer.name} is changing.`);
 		$players[idx] = newPlayer;
 		offTurnPlayers = $players.filter((p) => p.idx !== $game?.turnIdx);
 	}
 
-	/**
-	 *
-	 * @param id
-	 * @param idx
-	 */
-	function onPlayerLeave(id: string, idx: number) {
+	function onPlayerLeave(id: string, idx: number): void {
+		console.log('onPlayerLeave');
 		const player = $players[idx];
 		const peer = peers.get(id);
 
 		if (!player || !peer) return;
-		console.log('onPlayerLeave');
-
-		// console.log(`${player.name} is leaving.`);
 
 		if (index > idx) index--;
 
@@ -511,8 +462,8 @@
 		errorToast(`${player.name} left the game.`);
 	}
 
-	onMount(async () => {
-		streams = streams.set($userID, new MediaStream());
+	onMount(() => {
+		streams = streams.set($userId, new MediaStream());
 		let initialLoad = false;
 		subscriptions.push(
 			onGameState((newGame) => {
@@ -521,19 +472,18 @@
 						$game = { ...newGame };
 					} else {
 						if (newGame.size !== $game.size) {
-							onNewSize(newGame.size);
+							onNewGameSize(newGame.size);
 						}
 						if (newGame.turnIdx !== $game.turnIdx) {
 							onNewTurn(newGame.turnIdx);
 						}
 						if (newGame.state !== $game.state) {
-							onNewState(newGame.state);
+							onNewGameState(newGame.state);
 						}
 					}
 				}
 			}),
 			onPlayersChange((id, type, data) => {
-				// console.log(data);
 				const idx = data.idx;
 				if (type === 'added') {
 					onPlayerJoin(id, idx, data, initialLoad);
@@ -677,7 +627,7 @@
 				</div>
 			{/if}
 			{#if offTurnPlayers}
-				<div class="grid grid-cols-3 gap-4 mt-4">
+				<div class="grid grid-cols-3 gap-4">
 					{#each [...offTurnPlayers] as { name, remaining, id }}
 						<div
 							class="relative aspect-square rounded-lg overflow-hidden bg-[url('/dummy.png')] bg-cover"

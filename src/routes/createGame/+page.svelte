@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { signIn, createGame, joinGame, generateShortId } from '$lib/firebase';
-	import { isOnline, userName, gameID, game, players } from '$lib/stores';
+	import { isOnline, userName, gameId, game, players } from '$lib/stores';
 	import { RadioGroup, RadioItem, SlideToggle, RangeSlider } from '@skeletonlabs/skeleton';
 	import { errorToast, successToast } from '$lib/toast';
 	import { UserIcon } from 'svelte-feather-icons';
@@ -59,11 +59,12 @@
 					throw new Error('You are currently offline.');
 				}
 				await signIn();
+				const shortId = await generateShortId();
+				gameForm.shortId = shortId;
 				$game = gameForm;
-				$game.shortId = await generateShortId();
 				await createGame($game);
-				await joinGame($game.shortId);
-				goto(`/games/${$gameID}`);
+				await joinGame(shortId);
+				goto(`/games/${$gameId}`);
 				successToast('Game joined.');
 			}
 		} catch (err: unknown) {

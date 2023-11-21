@@ -24,7 +24,7 @@ import {
 	onDisconnect,
 	serverTimestamp as databaseServerTimestamp
 } from 'firebase/database';
-import { isOnline, gameID, userID, userName } from '$lib/stores.js';
+import { isOnline, gameId, userId, userName } from '$lib/stores.js';
 
 // Firebase Configuration is fetched from environment variables
 const firebaseConfig = {
@@ -65,7 +65,7 @@ export async function signIn() {
 onAuthStateChanged(auth, (user) => {
 	if (user) {
 		const id = user.uid;
-		userID.set(id);
+		userId.set(id);
 
 		const userStatusDatabaseRef = ref(database, '/status/' + id);
 		const userStatusFirestoreRef = doc(firestore, '/status/' + id);
@@ -126,7 +126,7 @@ export async function signOut() {
  * @returns
  */
 function getGameDocRef() {
-	return doc(firestore, 'games', get(gameID));
+	return doc(firestore, 'games', get(gameId));
 }
 
 /**
@@ -142,7 +142,7 @@ function getPlayersCollRef() {
  * @param playerID
  * @returns
  */
-function getPlayerDocRef(playerID: string = get(userID)) {
+function getPlayerDocRef(playerID: string = get(userId)) {
 	return doc(getPlayersCollRef(), playerID);
 }
 
@@ -161,9 +161,9 @@ function getMessageDocRef(callerID: string, calleeID: string) {
  * @returns
  */
 export async function generateShortId() {
-	const length = 6;
+	const length = 4;
 	const maxRetries = 10;
-	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 	for (let retryCount = 0; retryCount < maxRetries; retryCount++) {
 		let shortId = '';
@@ -187,7 +187,7 @@ export async function generateShortId() {
 export async function createGame(game: Game) {
 	const gamesCollRef = collection(firestore, 'games');
 	const gameRef = await addDoc(gamesCollRef, game);
-	gameID.set(gameRef.id);
+	gameId.set(gameRef.id);
 }
 
 /**
@@ -211,7 +211,7 @@ export async function joinGame(shortId: string) {
 		throw new Error('There are multiple games with the same shortId!');
 	}
 	const gameSnap = querySnapshot.docs[0];
-	gameID.set(gameSnap.id);
+	gameId.set(gameSnap.id);
 	const game = gameSnap.data() as Game;
 
 	const playersCollRef = getPlayersCollRef();
@@ -262,8 +262,7 @@ export async function updateGame(game: Game) {
  * @param player
  * @param playerID
  */
-export async function updatePlayer(player: Player, playerID: string = get(userID)) {
-	console.log('Updating player.');
+export async function updatePlayer(player: Player, playerID: string = get(userId)) {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const { id, ...playerWithoutIdAndStream } = player;
 	const playerDocRef = getPlayerDocRef(playerID);
@@ -283,7 +282,7 @@ export async function deletePlayer() {
  * @param candidate
  */
 export async function sendCandidate(playerID: string, candidate: RTCIceCandidate) {
-	const messageDocRef = getMessageDocRef(get(userID), playerID);
+	const messageDocRef = getMessageDocRef(get(userId), playerID);
 	await addDoc(collection(messageDocRef, 'candidates'), candidate.toJSON());
 }
 
@@ -293,7 +292,7 @@ export async function sendCandidate(playerID: string, candidate: RTCIceCandidate
  * @param message
  */
 export async function sendMessage(playerID: string, message: RTCMessage) {
-	const messageDocRef = getMessageDocRef(get(userID), playerID);
+	const messageDocRef = getMessageDocRef(get(userId), playerID);
 	await setDoc(messageDocRef, message);
 }
 
@@ -302,7 +301,7 @@ export async function sendMessage(playerID: string, message: RTCMessage) {
  * @param playerID
  */
 export async function deleteMessage(playerID: string) {
-	const messageDocRef = getMessageDocRef(get(userID), playerID);
+	const messageDocRef = getMessageDocRef(get(userId), playerID);
 	await deleteDoc(messageDocRef);
 }
 
@@ -344,7 +343,7 @@ export function onNewCandidate(
 	playerID: string,
 	callback: (candidate: DocumentData) => Promise<void>
 ) {
-	const messageDocRef = getMessageDocRef(playerID, get(userID));
+	const messageDocRef = getMessageDocRef(playerID, get(userId));
 	const candidatesCollRef = collection(messageDocRef, 'candidates');
 	const unsubscribe = onSnapshot(candidatesCollRef, (snapshot) => {
 		snapshot.docChanges().forEach(async (change) => {
@@ -363,7 +362,7 @@ export function onNewCandidate(
  * @returns
  */
 export function onNewMessage(playerID: string, callback: (message: DocumentData) => Promise<void>) {
-	const messageDocRef = getMessageDocRef(playerID, get(userID));
+	const messageDocRef = getMessageDocRef(playerID, get(userId));
 	const unsubscribe = onSnapshot(messageDocRef, async (snapshot) => {
 		const message = snapshot.data();
 		if (!message) return;
@@ -379,10 +378,7 @@ export function onNewMessage(playerID: string, callback: (message: DocumentData)
  * @param callback
  * @returns
  */
-export function onPlayerState(
-	uid: string,
-	callback: (state: 'offline' | 'online') => Promise<void>
-) {
+export function onPlayerState(uid: string, callback: (state: 'offline' | 'online') => void) {
 	const userStatusFirestoreRef = doc(firestore, '/status/' + uid);
 	const unsubscribe = onSnapshot(userStatusFirestoreRef, async (snapshot) => {
 		if (snapshot.exists()) {

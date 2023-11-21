@@ -1,5 +1,4 @@
 <script lang="ts">
-
 	export let game: Game | null;
 	export let players: Player[];
 
@@ -10,7 +9,7 @@
 
 {#if game}
 	{#each [...players] as { name, remaining, avg, sets, legs }}
-		<div class="table-container mb-4 border-token border-surface-400-500-token">
+		<div class="table-container border-token border-surface-400-500-token">
 			<h3 class="h3 text-center py-4 bg-primary-500 dark:bg-primary-800">{name}</h3>
 			<table class="table table-hover rounded-t-none">
 				<tbody>

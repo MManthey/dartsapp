@@ -8,13 +8,13 @@
 	let isLoading = false;
 
 	async function handleClick() {
-        isLoading = true;
-        try {
+		isLoading = true;
+		try {
 			await onClick();
-        } finally {
-            isLoading = false;
-        }
-    }
+		} finally {
+			isLoading = false;
+		}
+	}
 </script>
 
 <button
@@ -29,4 +29,3 @@
 		{text}
 	{/if}
 </button>
-

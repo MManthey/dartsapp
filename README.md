@@ -32,17 +32,3 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
-
-## Bugs/Problems/Fixes
-
-- [ ] check if shortID is free
-- [ ] redirect to Home 404/50x
-- [ ] preventDefault leaveGame
-- [ ] Name input validation
-
-## TODO's
-
-- [ ] Display game settings ingame
-- [ ] Game Setting: Sets/Legs
-- [ ] Game Mode: Cricket
-- [ ] Offline Mode
