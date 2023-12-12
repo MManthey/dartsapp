@@ -26,7 +26,7 @@
 	</div>
 </div>
 
-<main class="min-h-screen">
+<main>
 	<div class="container max-w-lg mx-auto px-10 py-16">
 		<slot />
 		<Toast max={1} />

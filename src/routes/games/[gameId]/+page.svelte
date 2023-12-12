@@ -643,52 +643,54 @@
 					{/each}
 				</div>
 			{/if}
-			<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
-				<button
-					class="btn-icon btn-icon-xl {!camOn ? 'variant-filled-error' : 'variant-filled-primary'}"
-					type="button"
-					disabled={camLoading}
-					on:click={handleCamBtn}
-				>
-					{#if camLoading}
-						<ProgressRadial />
-					{:else if !camOn}
-						<CameraOffIcon />
-					{:else}
-						<CameraIcon />
-					{/if}
-				</button>
-				<button
-					class="btn-icon btn-icon-xl {!micOn ? 'variant-filled-error' : 'variant-filled-primary'}"
-					type="button"
-					disabled={micLoading}
-					on:click={handleMicBtn}
-				>
-					{#if micLoading}
-						<ProgressRadial />
-					{:else if !micOn}
-						<MicOffIcon />
-					{:else}
-						<MicIcon />
-					{/if}
-				</button>
-				<button
-					class="btn-icon btn-icon-xl variant-filled-error"
-					type="button"
-					disabled={leaveLoading}
-					on:click={handleLeaveBtn}
-				>
-					{#if leaveLoading}
-						<ProgressRadial />
-					{:else}
-						<LogOutIcon />
-					{/if}
-				</button>
-			</div>
 		{:else if mode === 'score'}
 			<ScoreInput {index} />
 		{:else}
 			<Scoreboard game={$game} players={$players} />
 		{/if}
+	</div>
+	<div
+		class="fixed bottom-5 left-1/2 transform -translate-x-1/2 flex flex-row justify-center gap-5"
+	>
+		<button
+			class="btn-icon btn-icon-xl {!camOn ? 'variant-filled-error' : 'variant-filled-primary'}"
+			type="button"
+			disabled={camLoading}
+			on:click={handleCamBtn}
+		>
+			{#if camLoading}
+				<ProgressRadial />
+			{:else if !camOn}
+				<CameraOffIcon />
+			{:else}
+				<CameraIcon />
+			{/if}
+		</button>
+		<button
+			class="btn-icon btn-icon-xl {!micOn ? 'variant-filled-error' : 'variant-filled-primary'}"
+			type="button"
+			disabled={micLoading}
+			on:click={handleMicBtn}
+		>
+			{#if micLoading}
+				<ProgressRadial />
+			{:else if !micOn}
+				<MicOffIcon />
+			{:else}
+				<MicIcon />
+			{/if}
+		</button>
+		<button
+			class="btn-icon btn-icon-xl variant-filled-error"
+			type="button"
+			disabled={leaveLoading}
+			on:click={handleLeaveBtn}
+		>
+			{#if leaveLoading}
+				<ProgressRadial />
+			{:else}
+				<LogOutIcon />
+			{/if}
+		</button>
 	</div>
 {/if}

@@ -21,7 +21,7 @@ type GameState = 'open' | 'closed' | 'over';
 
 declare interface Game {
 	shortId?: string;
-	gameMode: '301' | '501';
+	gameMode: string;
 	outMode: 'single' | 'double';
 	sets: number,
 	legs: number,

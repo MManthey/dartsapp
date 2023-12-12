@@ -18,6 +18,19 @@
 		turnIdx: 0,
 		state: 'open'
 	};
+	let gameMode = '301';
+	let points = 301;
+	$: switch (gameMode) {
+		case '301':
+			gameForm.gameMode = '301';
+			break;
+		case '501':
+			gameForm.gameMode = '501';
+			break;
+		case 'Custom':
+			gameForm.gameMode = `${points}`;
+			break;
+	}
 	let onlineGame = true;
 	let playerNames: string[] = [];
 
@@ -81,12 +94,28 @@
 	<div>
 		<label class="block font-bold">
 			<div>Game Mode</div>
-			<select class="select w-full mt-2 pl-5" bind:value={gameForm.gameMode}>
+			<select class="select w-full mt-2 pl-5" bind:value={gameMode}>
 				<option value="301">301</option>
 				<option value="501">501</option>
+				<option value="Custom">Custom</option>
 			</select>
 		</label>
 	</div>
+	{#if gameMode === 'Custom'}
+		<div class="">
+			<RangeSlider
+				name="range-slider"
+				bind:value={points}
+				min={1}
+				max={999}
+				accent="accent-primary-500 dark:accent-primary-500"
+			>
+				<div class="font-bold text-md">
+					Playing down from {points}
+				</div>
+			</RangeSlider>
+		</div>
+	{/if}
 	<div>
 		<div class="font-bold text-md">Out Mode</div>
 		<RadioGroup class="grid grid-cols-2 mt-2" active="variant-filled-primary">
