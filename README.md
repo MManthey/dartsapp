@@ -1,6 +1,6 @@
-# Dartsapp
+# DartsApp
 
-[Dartsapp](https://dartsapp-ad95a.web.app/) is a web app to play darts remotely with your friends.
+[DartsApp](https://dartsapp-ad95a.web.app/) is a web app to play darts remotely with your friends.
 
 ### Technologies
 

@@ -1,7 +1,7 @@
 {
-	"name": "Dartsapp",
+	"name": "DartsApp",
 	"description": "A multiplayer darts app to play darts remotely with your friends.",
-	"short_name": "Dartsapp",
+	"short_name": "DartsApp",
 	"start_url": "/",
 	"display": "standalone",
 	"background_color": "#25D699",

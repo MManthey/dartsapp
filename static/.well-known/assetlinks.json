@@ -1,8 +1,12 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.mondula.dartsapp.play.twa",
-        "sha256_cert_fingerprints": ["83:B8:DA:A3:B1:B8:57:25:19:5A:E2:D3:46:95:28:94:75:E8:C1:F2:85:43:BC:CE:E5:DD:BC:B2:A3:86:64:2F"]
-      }
-    }]
+[
+	{
+		"relation": ["delegate_permission/common.handle_all_urls"],
+		"target": {
+			"namespace": "android_app",
+			"package_name": "com.mondula.dartsapp.play.twa",
+			"sha256_cert_fingerprints": [
+				"83:B8:DA:A3:B1:B8:57:25:19:5A:E2:D3:46:95:28:94:75:E8:C1:F2:85:43:BC:CE:E5:DD:BC:B2:A3:86:64:2F"
+			]
+		}
+	}
+]
