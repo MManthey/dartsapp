@@ -2,7 +2,7 @@
 	import { ProgressRadial } from '@skeletonlabs/skeleton';
 
 	export let text: string;
-	export let disabled: boolean = false;
+	export let disabled = false;
 	export let onClick: () => void | Promise<void>;
 
 	let isLoading = false;

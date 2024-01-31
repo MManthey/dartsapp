@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { isOnline, userName, gameId, game, players } from '$lib/stores';
+	import { isOnline, userName, gameId } from '$lib/stores';
 	import { signIn, joinGame } from '$lib/firebase';
 	import { errorToast } from '$lib/toast';
 	import { UserIcon, HashIcon } from 'svelte-feather-icons';

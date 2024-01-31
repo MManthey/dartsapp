@@ -23,8 +23,8 @@ declare interface Game {
 	shortId?: string;
 	gameMode: string;
 	outMode: 'single' | 'double';
-	sets: number,
-	legs: number,
+	sets: number;
+	legs: number;
 	size: GameSize;
 	turnIdx: number;
 	state: GameState;

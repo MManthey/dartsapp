@@ -1,10 +1,6 @@
 <script lang="ts">
 	export let game: Game | null;
 	export let players: Player[];
-
-	let missing: number[] = [];
-
-	$: if (game) missing = Array(game.size - players.length);
 </script>
 
 {#if game}

@@ -169,11 +169,15 @@
 			</SlideToggle>
 		</div>
 		{#if !onlineGame}
-			<div>
-				<div class="text-md mb-5">Names</div>
+			<div class="flex flex-col gap-5">
+				<div class="text-md">Names</div>
 				{#each { length: gameForm.size - 1 } as _, i}
-					<TextInput text={playerNames[i]} name="player-{i + 2}-name" placeholder="Player {i + 2}">
-						<UserIcon />
+					<TextInput
+						bind:text={playerNames[i]}
+						name="player-{i + 2}-name"
+						placeholder="Player {i + 2}"
+					>
+						<UserIcon slot="icon" />
 					</TextInput>
 				{/each}
 			</div>
