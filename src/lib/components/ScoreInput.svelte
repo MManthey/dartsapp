@@ -30,6 +30,7 @@
 
 	// Reactively calculate darts to reduce remaining to 0.
 	$: {
+		console.log(optimalDarts);
 		let remainingPoints = player.remaining;
 		const allScores = [...possibleScores, 50];
 
@@ -38,7 +39,7 @@
 				if (remainingPoints <= 0 || ($game?.outMode === 'double' && remainingPoints === 1)) {
 					optimalDarts[idx] = { s: null, x: 1 };
 				} else if ($game?.outMode === 'double') {
-					if (remainingPoints <= 40 || (remainingPoints === 50 && remainingPoints % 2 === 0)) {
+					if ((remainingPoints <= 40 || remainingPoints === 50) && remainingPoints % 2 === 0) {
 						optimalDarts[idx] =
 							remainingPoints === 50
 								? { s: remainingPoints, x: 1 }
@@ -47,21 +48,21 @@
 						let found = false;
 						for (let j = 0; j < allScores.length && !found; j++) {
 							const rem = remainingPoints - allScores[j];
-							if (rem <= 40 || (rem === 50 && rem % 2 === 0)) {
+							if ((rem <= 40 || rem === 50) && rem % 2 === 0) {
 								optimalDarts[idx] = { s: allScores[j], x: 1 };
 								found = true;
 							}
 						}
 						for (let j = 1; j <= 20 && !found; j++) {
 							const rem = remainingPoints - j * 2;
-							if (rem <= 40 || (rem === 50 && rem % 2 === 0)) {
+							if ((rem <= 40 || rem === 50) && rem % 2 === 0) {
 								optimalDarts[idx] = { s: j, x: 2 };
 								found = true;
 							}
 						}
 						for (let j = 1; j <= 20 && !found; j++) {
 							const rem = remainingPoints - j * 3;
-							if (rem <= 40 || (rem === 50 && rem % 2 === 0)) {
+							if ((rem <= 40 || rem === 50) && rem % 2 === 0) {
 								optimalDarts[idx] = { s: j, x: 3 };
 								found = true;
 							}
