@@ -30,6 +30,14 @@ declare interface Game {
 	state: GameState;
 }
 
+declare interface Training {}
+
+declare interface Cricket extends Training {
+	// bei Cricket hochzählen von 0 - 3
+	nums: number[];
+	throws: number;
+}
+
 interface SessionDescription {
 	type: RTCSdpType;
 	sdp: string | undefined;

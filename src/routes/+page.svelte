@@ -27,6 +27,10 @@
 	function handleCreateBtn() {
 		goto('/createGame');
 	}
+
+	function handleTrainingBtn() {
+		goto('/training');
+	}
 </script>
 
 <div class="max-w-xs mx-auto flex flex-col gap-7">
@@ -41,4 +45,7 @@
 		<Button text="Create" disabled={!$userName} onClick={handleCreateBtn} />
 		<Button text="Join" disabled={!$userName || shortId.length !== 4} onClick={handleJoinBtn} />
 	</div>
+	<br>
+	<div class="text-center">Want to train before playing?</div>
+	<Button text="Training" onClick={handleTrainingBtn}/>
 </div>

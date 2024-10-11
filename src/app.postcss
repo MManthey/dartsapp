@@ -123,3 +123,67 @@ progress[value]::-webkit-progress-value {
 .border-t-surface-400 {
 	border-color: rgb(var(--color-surface-400));
 }
+
+.imgIcon {
+	width: 60px;
+	height: 60px;
+}
+
+.trainingDivs {
+	display: flex;
+	box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.3);
+	padding: 10px;
+}
+
+.trainingDivs p {
+	margin: auto;
+}
+
+.infoIcon {
+	margin-top:auto;
+	margin-bottom: auto;
+	margin-right: 10px;
+	width: 25px;
+	height: 25px;
+}
+
+.clickable {
+    cursor: pointer;
+}
+
+.cricketScore {
+	text-align: right;
+}
+
+.cricketGrids div {
+	width: 50%;
+	margin-right: 1em;
+}
+
+.cricketGrids {
+	padding-bottom: 0.3em;
+	border: 1px solid white;
+	margin-left: 0.5em;
+	margin-right: 0.5em;
+	border-radius: 7px;
+}
+
+.overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.7); /* Halbtransparentes Schwarz */
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.cricketPopup {
+	background: #6AD8A7;
+	padding: 20px;
+	border-radius: 5px;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+	z-index: 1000; /* Damit das Modal über anderen Inhalten liegt */
+}

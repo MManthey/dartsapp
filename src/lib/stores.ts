@@ -10,6 +10,7 @@ export const userName = localStorageStore('userName', '');
 export const gameId = localStorageStore('gameId', '');
 export const game: Writable<Game | null> = localStorageStore('game', null);
 export const players: Writable<Player[]> = localStorageStore('players', []);
+export const training: Writable<Training | null> = localStorageStore('training', null);
 
 if (browser && getModeUserPrefers() === undefined) {
 	setModeUserPrefers(false);
