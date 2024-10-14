@@ -15,18 +15,6 @@
 		goto('../');
 	}
 
-	function handleCricketBtn() {
-		goto('/training/cricket');
-	}
-
-	function handleDoubleBtn() {
-		goto('/training/cricket');
-	}
-
-	function handleZielBtn() {
-		goto('/training/zieluebung');
-	}
-
 	function showInfo(event: MouseEvent, mode: string, content: string) {
 		event.stopPropagation(); // Verhindert das Weiterleiten des Klicks
 
@@ -44,25 +32,10 @@
 
 <div class="max-w-xs mx-auto flex flex-col gap-7">
 	<div class="text-3xl text-center my-6">Training Modi</div>
-
 	<div class="max-w-xs trainingDivs clickable" on:click={handleCricketBtn}>
 		<img class="imgIcon" src="/cricket-192x192.png" alt="cricket_icon"/>
 		<p class="text-2xl">Cricket Modus</p>
 		<div on:click={(e) => showInfo(e, 'overlayCricket', 'Bei Cricket muss jede Zahl, einschließlich der 25, mindestens 3 mal getroffen werden, um zu gewinnen. Double/ Triple zählen dabei dementsprechend doppelt und dreifach.')}>
-			<InfoIcon class="infoIcon"/>
-		</div>
-	</div>
-	<div class="max-w-xs trainingDivs clickable" on:click={handleDoubleBtn}>
-		<img class="imgIcon" src="/x2-192x192.png" alt="x2_icon"/>
-		<p class="text-2xl">Double Training</p>
-		<div on:click={(e) => showInfo(e, 'overlayDouble', 'Hier ist eine Erklärung für das Double Training.')}>
-			<InfoIcon class="infoIcon"/>
-		</div>
-	</div>
-	<div class="max-w-xs trainingDivs clickable" on:click={handleZielBtn}>
-		<img class="imgIcon" src="/aim-192x192.png" alt="aim_icon"/>
-		<p class="text-2xl">Zielübung</p>
-		<div on:click={(e) => showInfo(e, 'overlayZiel', 'Hier ist eine Erklärung für die Zielübung.')}>
 			<InfoIcon class="infoIcon"/>
 		</div>
 	</div>
@@ -72,12 +45,4 @@
 			<LogOutIcon/>
 		</button>
 	</div>
-	{#if showOverlay}
-		<div class="max-w-xs mx-auto flex flex-col gap-7 overlay {overlayMode}" on:click={closeOverlay}>
-			<div class="overlay-content" style="top: {overlayPosition.top}; left: {overlayPosition.left};" on:click|stopPropagation>
-				<p>{overlayContent}</p>
-				<button class="close-button btn variant-filled-primary w-full py-2 px-4" on:click={closeOverlay}>Schließen</button>
-			</div>
-		</div>
-	{/if}
 </div>

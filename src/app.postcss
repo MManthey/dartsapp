@@ -162,22 +162,31 @@ progress[value]::-webkit-progress-value {
 
 .cricketGrids {
 	padding-bottom: 0.3em;
-	border: 1px solid white;
 	margin-left: 0.5em;
 	margin-right: 0.5em;
 	border-radius: 7px;
 }
 
-.overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: rgba(0, 0, 0, 0.7); /* Halbtransparentes Schwarz */
-	display: flex;
-	justify-content: center;
-	align-items: center;
+.cricketGridsColorNorm {
+	background: white;
+	border: 1px solid #1b6544;
+}
+
+.cricketGridsColorNorm div {
+	color: #94bfae;
+}
+
+.cricketGridsColorDone {
+	background: #1b6544;
+	border: 1px solid #1b6544;
+}
+
+.cricketGridsColorDone div {
+	color: #93b2a2;
+}
+
+.cricketGridsColorDone div svg {
+	fill: #93b2a2;
 }
 
 .cricketPopup {
@@ -186,4 +195,64 @@ progress[value]::-webkit-progress-value {
 	border-radius: 5px;
 	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 	z-index: 1000; /* Damit das Modal über anderen Inhalten liegt */
+}
+
+.cricketScoreDiv {
+	display: flex;
+}
+
+.cricketScoreDiv svg {
+	margin: 1px;
+	margin-top: 4px;
+	fill: #94bfae;
+}
+
+.overlay {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	text-color: white;
+}
+
+.overlayCricket {
+	top: 16em;
+}
+
+.overlayDouble {
+	top: 23em;
+}
+
+.overlayZiel{
+	top: 29.5em;
+}
+
+.overlay-content {
+	margin-right: 1.5em;
+	margin-left: 1.5em;
+	position: absolute; /* Positioniert es relativ zur Overlay */
+	background: #333333;
+	padding: 20px;
+	border-radius: 8px;
+	text-align: center;
+	z-index: 1000; /* Damit das Overlay über anderen Inhalten liegt */
+}
+
+.close-button {
+	margin-top: 10px;
+}
+
+.infoIcon {
+	cursor: pointer; /* Stellt sicher, dass es klickbar aussieht */
+}
+
+.close-button {
+	margin-top: 10px;
+	cursor: pointer;
+	border: none;
+	background: none;
+	color: 1b6543!; /* Farbe */
 }
