@@ -12,7 +12,7 @@
 
 	let isLoading = false;
 	const possibleScores = [...Array(21).keys()].concat([25]);
-	let trainingForm = { nums: new Array(22).fill(3), throws: 0 } as Cricket;
+	let trainingForm = { nums: new Array(22).fill(0), throws: 0 } as Cricket;
 
 	let darts = { s: 0, x: 1 } as Dart;
 
@@ -47,7 +47,7 @@
 		const modalComponent: ModalComponent = {
 			ref: WinnerModal,
 			props: { background: 'bg-primary-500' },
-			slot: `<p class="text-white"> You have completed the training with ${trainingForm.throws} throws!</p>` // Hier eventuell den Namen dynamisch setzen
+			slot: `<p class="text-white"> You have completed the training with ${trainingForm.throws} throws!</p>`
 		};
 		const modal: ModalSettings = {
 			type: 'component',
@@ -62,7 +62,6 @@
 </script>
 
 <div class="max-w-xs mx-auto flex flex-col gap-7">
-	<!-- TODO: Info Button zur Erklärung mit einbauen -->
 	<div class="text-3xl text-center my-6">Cricket</div>
 </div>
 

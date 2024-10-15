@@ -169,11 +169,11 @@ progress[value]::-webkit-progress-value {
 
 .cricketGridsColorNorm {
 	background: white;
-	border: 1px solid #1b6544;
+	border: 1px solid #7ea193;
 }
 
 .cricketGridsColorNorm div {
-	color: #94bfae;
+	color: #7ea193;
 }
 
 .cricketGridsColorDone {
@@ -204,7 +204,7 @@ progress[value]::-webkit-progress-value {
 .cricketScoreDiv svg {
 	margin: 1px;
 	margin-top: 4px;
-	fill: #94bfae;
+	fill: #7ea193;
 }
 
 .overlay {
@@ -233,12 +233,12 @@ progress[value]::-webkit-progress-value {
 .overlay-content {
 	margin-right: 1.5em;
 	margin-left: 1.5em;
-	position: absolute; /* Positioniert es relativ zur Overlay */
+	position: absolute;
 	background: #333333;
 	padding: 20px;
 	border-radius: 8px;
 	text-align: center;
-	z-index: 1000; /* Damit das Overlay über anderen Inhalten liegt */
+	z-index: 1000;
 }
 
 .close-button {
@@ -246,7 +246,7 @@ progress[value]::-webkit-progress-value {
 }
 
 .infoIcon {
-	cursor: pointer; /* Stellt sicher, dass es klickbar aussieht */
+	cursor: pointer;
 }
 
 .close-button {
@@ -254,5 +254,45 @@ progress[value]::-webkit-progress-value {
 	cursor: pointer;
 	border: none;
 	background: none;
-	color: 1b6543!; /* Farbe */
+	color: 1b6543;
+}
+
+.textDiv {
+	border: 1px solid #6d6d6d;
+	text-align: center;
+}
+
+.redBtn {
+	background-color: #ec5650;
+	color: black;
+}
+
+/* Stellt sicher, dass der Container relativ positioniert ist */
+.relative-container {
+	position: relative;
+}
+
+/* Der Wrapper hält beide Bilder übereinander */
+.image-wrapper {
+	position: relative;
+	width: 100%;
+	height: auto;
+}
+
+/* Basisbild */
+.base-image {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+/* Überlagerungsbild */
+.overlay-image {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: auto;
+	/* Optional: Transparenz hinzufügen */
+	opacity: 0.8; /* Für einen leichten Überlappungseffekt */
 }
