@@ -24,7 +24,7 @@
 	}
 
 	function handlePrecisionBtn() {
-		goto('/training/precision');
+		goto('/training/precision/settings');
 	}
 
 	function showInfo(event: MouseEvent, mode: string, content: string) {

@@ -7,6 +7,17 @@
 	import { LogOutIcon } from 'svelte-feather-icons';
 	import Button from '$lib/components/Button.svelte';
 
+	import { training } from '$lib/stores';
+
+	// Reactive assignment to automatically subscribe to the store
+	let trainingData = $training;
+
+	// Now you can access `trainingData.difficulty` and `trainingData.hitsNeeded`
+	let difficulty = trainingData.difficulty;
+	let hitsNeeded = trainingData.hitsNeeded;
+
+	let health = difficulty === 'beginner' ? 1 : 0;
+
 	let possImgs1 = ['/scheibe-L-512x512.png', '/scheibe-R-512x512.png', '/scheibe-B-512x512.png', '/scheibe-T-512x512.png'];
 	let possImgs2 = ['/scheibe-BL-512x512.png', '/scheibe-BR-512x512.png', '/scheibe-TL-512x512.png', '/scheibe-TR-512x512.png'];
 	let possImgs3 = ['/scheibe-1-512x512.png', '/scheibe-2-512x512.png', '/scheibe-3-512x512.png', '/scheibe-4-512x512.png', '/scheibe-5-512x512.png', '/scheibe-6-512x512.png', '/scheibe-7-512x512.png', '/scheibe-8-512x512.png', '/scheibe-9-512x512.png', '/scheibe-10-512x512.png', '/scheibe-11-512x512.png', '/scheibe-12-512x512.png', '/scheibe-13-512x512.png', '/scheibe-14-512x512.png', '/scheibe-15-512x512.png', '/scheibe-16-512x512.png', '/scheibe-17-512x512.png', '/scheibe-18-512x512.png', '/scheibe-19-512x512.png', '/scheibe-20-512x512.png'];
@@ -27,6 +38,18 @@
 	let possTexts;
 	let possImgs;
 
+	function healthDown() {
+		if (health > 0) {
+			health--;
+
+		} else {
+			if (difficulty === 'beginner') {
+				health++;
+			}
+			randomizeNew();
+		}
+	}
+
 	function randomizeNew() {
 		[possImgs1, possTexts1] = shufflePairs(possImgs1, possTexts1);
 		[possImgs2, possTexts2] = shufflePairs(possImgs2, possTexts2);
@@ -38,11 +61,18 @@
 
 	randomizeNew();
 
+	//TODO: hier überarbeiten mit den Schwierigkeiten.... glaube das ist super unnötig aufwändig gerade......
 	function hitMark() {
-		if (active < 17) {
+		if ((difficulty !== expert && active < 17) || (difficulty === 'expert' && active < 27)) {
 			active++;
-		} else if (active < 18) {
-			active = possImgs.length - 1;
+		} else if (difficulty !== 'expert' && active < 18) {
+			if (difficulty === 'beginner') {
+				openModal();
+			} else {
+				active = possImgs.length - 1;
+			}
+		} else if (difficulty === expert) {
+			//öhhh
 		} else {
 			// Open the winner modal here
 			openModal();
@@ -67,14 +97,12 @@
 		}, 1000);
 	}
 
-	function handleBackBtn() {
-		goto('../');
-	}
-
 	let active6 = ['/scheibe-R-512x512.png', '/scheibe-B-512x512.png', '/scheibe-T-512x512.png', '/scheibe-BR-512x512.png', '/scheibe-TR-512x512.png', 'scheibe-6-512x512.png'];
 
 	// Reactive function to update overlay image
 	$: overlayImage = active6.includes(possImgs[active]) ? '/6_green.png' : '/6.png';
+	$: activeImage = possImgs[active];
+	$: activeText = possTexts[active];
 </script>
 
 <div class="max-w-xs mx-auto flex flex-col gap-7">
@@ -83,21 +111,21 @@
 
 <div class="max-w-xs mx-auto flex flex-col gap-7 relative-container">
 	<div class="image-wrapper"> 
-		<img class="base-image" src={possImgs[active]} alt="darts_img"/>
+		<img class="base-image" src={activeImage} alt="darts_img"/>
 		<img class="overlay-image" src={overlayImage} alt="darts_img"/>
 	</div>
 
 	<div class="textDiv w-full card p-2 text-white text-xl">
-		{possTexts[active]}
+		{activeText}
 	</div>
 
 	<div class="flex space-x-3 mt-1 twoBtnDiv">
 		<Button text="Hit it!" onClick={hitMark} />
-		<button class="btn w-full redBtn py-2 px-4" on:click={randomizeNew}>Missed...</button>
+		<button class="btn w-full redBtn py-2 px-4" on:click={healthDown}>Missed...</button>
 	</div>
 
 	<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
-		<button class="btn-icon btn-icon-xl variant-filled-error" type="button" on:click={() => { goto('/');}}>
+		<button class="btn-icon btn-icon-xl variant-filled-error" type="button" on:click={() => { goto('/'); $training = null;}}>
 			<LogOutIcon/>
 		</button>
 	</div>

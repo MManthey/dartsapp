@@ -38,6 +38,13 @@ declare interface Cricket extends Training {
 	throws: number;
 }
 
+type HitsNeeded = 1 | 2 | 3;
+
+declare interface Precision extends Training {
+	difficulty: string;
+	hitsNeeded: HitsNeeded;
+}
+
 interface SessionDescription {
 	type: RTCSdpType;
 	sdp: string | undefined;
