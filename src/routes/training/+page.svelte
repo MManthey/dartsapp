@@ -19,12 +19,12 @@
 		goto('/training/cricket');
 	}
 
-	function handleDoubleBtn() {
-		goto('/training/cricket');
+	function handleTripleBtn() {
+		goto('/training/triple/settings');
 	}
 
-	function handleZielBtn() {
-		goto('/training/zieluebung');
+	function handlePrecisionBtn() {
+		goto('/training/precision');
 	}
 
 	function showInfo(event: MouseEvent, mode: string, content: string) {
@@ -47,22 +47,22 @@
 
 	<div class="max-w-xs trainingDivs clickable" on:click={handleCricketBtn}>
 		<img class="imgIcon" src="/cricket-192x192.png" alt="cricket_icon"/>
-		<p class="text-2xl">Cricket Modus</p>
-		<div on:click={(e) => showInfo(e, 'overlayCricket', 'Bei Cricket muss jede Zahl, einschließlich der 25, mindestens 3 mal getroffen werden, um zu gewinnen. Double/ Triple zählen dabei dementsprechend doppelt und dreifach.')}>
+		<p class="text-2xl">Cricket Mode</p>
+		<div on:click={(e) => showInfo(e, 'overlayCricket', 'In the Cricket Training Mode you have to hit every number, including 25, 3 times. Double/ triple also counts for two or three hits.')}>
 			<InfoIcon class="infoIcon"/>
 		</div>
 	</div>
-	<div class="max-w-xs trainingDivs clickable" on:click={handleDoubleBtn}>
-		<img class="imgIcon" src="/x2-192x192.png" alt="x2_icon"/>
-		<p class="text-2xl">Double Training</p>
-		<div on:click={(e) => showInfo(e, 'overlayDouble', 'Hier ist eine Erklärung für das Double Training.')}>
-			<InfoIcon class="infoIcon"/>
-		</div>
-	</div>
-	<div class="max-w-xs trainingDivs clickable" on:click={handleZielBtn}>
+	<div class="max-w-xs trainingDivs clickable" on:click={handlePrecisionBtn}>
 		<img class="imgIcon" src="/aim-192x192.png" alt="aim_icon"/>
-		<p class="text-2xl">Zielübung</p>
-		<div on:click={(e) => showInfo(e, 'overlayZiel', 'Hier ist eine Erklärung für die Zielübung.')}>
+		<p class="text-2xl">Precision Training</p>
+		<div on:click={(e) => showInfo(e, 'overlayZiel', 'Precision training thrives to teach you to slowly get better at accurately hitting the board. It might start off easy but one mistake and you have to start all over again!')}>
+			<InfoIcon class="infoIcon"/>
+		</div>
+	</div>
+	<div class="max-w-xs trainingDivs clickable" on:click={handleTripleBtn}>
+		<img class="imgIcon" src="/x2x3-192x192.png" alt="x2_icon"/>
+		<p class="text-2xl">Triple Threat</p>
+		<div on:click={(e) => showInfo(e, 'overlayDouble', 'The goal of triple threat is to accurately hit random doubles/ triples. You can specify how many attempts you want to give to yourself.')}>
 			<InfoIcon class="infoIcon"/>
 		</div>
 	</div>
