@@ -11,7 +11,12 @@ module.exports = {
 		join(require.resolve('@skeletonlabs/skeleton'), '../**/*.{html,js,svelte,ts}')
 	],
 	theme: {
-		extend: {}
+		extend: {
+			colors: {
+				customDarkGray: '#333333',
+				customStrongRed: '#bc2d29',
+			},
+		},
 	},
 	plugins: [forms, typography, ...skeleton()]
 };

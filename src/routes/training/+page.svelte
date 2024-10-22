@@ -55,7 +55,7 @@
 	<div class="max-w-xs trainingDivs clickable" on:click={handlePrecisionBtn}>
 		<img class="imgIcon" src="/aim-192x192.png" alt="aim_icon"/>
 		<p class="text-2xl">Precision Training</p>
-		<div on:click={(e) => showInfo(e, 'overlayZiel', 'Precision training thrives to teach you to slowly get better at accurately hitting the board. It might start off easy but one mistake and you have to start all over again!')}>
+		<div on:click={(e) => showInfo(e, 'overlayZiel', 'Precision training thrives to teach you to slowly get better at accurately hitting the board. It might start off easy but one mistake and you might have to start all over again!')}>
 			<InfoIcon class="infoIcon"/>
 		</div>
 	</div>
