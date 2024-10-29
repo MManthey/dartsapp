@@ -9,13 +9,19 @@
 	import Checkbox from '$lib/components/Checkbox.svelte';
 	import { training } from '$lib/stores';
 
-	let selectedMode = 'double';
+	let trainingForm = { mode: 'double', trys: 3, includeBull: false} as TripleThreat;
 
 	/**
 	 * Handles the Letsdothis Button
 	 */
 	function handleGoBtn() {
+		training.set(trainingForm);
 		goto('/training/triple/tripleGame');
+	}
+
+	// Watch for mode changes and update includeBull
+	$: if (trainingForm.mode === 'triple') {
+		trainingForm.includeBull = false; // Reset to false if Triple is selected
 	}
 </script>
 
@@ -25,9 +31,9 @@
 		<div class="font-bold text-md">Mode</div>
 		<!-- Bind selectedMode to the RadioGroup -->
 		<RadioGroup class="grid grid-cols-3 mt-2" active="variant-filled-primary">
-			<RadioItem bind:group={selectedMode} name="double" value="double">Double</RadioItem>
-            <RadioItem bind:group={selectedMode} name="triple" value="triple">Triple</RadioItem>
-            <RadioItem bind:group={selectedMode} name="mixed" value="mixed">Mixed</RadioItem>
+			<RadioItem bind:group={trainingForm.mode} name="double" value="double">Double</RadioItem>
+            <RadioItem bind:group={trainingForm.mode} name="triple" value="triple">Triple</RadioItem>
+            <RadioItem bind:group={trainingForm.mode} name="mixed" value="mixed">Mixed</RadioItem>
 		</RadioGroup>
 	</div>
     <div>
@@ -35,6 +41,7 @@
 			name="range-slider"
 			min={1}
 			max={3}
+			bind:value={trainingForm.trys}
 			ticked
 			accent="accent-primary-500 dark:accent-primary-500"
 		>
@@ -54,7 +61,7 @@
             Include Bullseye:
         </div>
         <div>
-            <Checkbox></Checkbox>
+            <Checkbox bind:clicked={trainingForm.includeBull} disabled={trainingForm.mode === 'triple'}></Checkbox>
         </div>
     </div>
 	<div class="mt-4">
