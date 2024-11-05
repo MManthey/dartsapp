@@ -27,6 +27,10 @@
 		goto('/training/precision/settings');
 	}
 
+	function handleCheckoutBtn() {
+		goto('/training/checkout/settings');
+	}
+
 	function showInfo(event: MouseEvent, mode: string, content: string) {
 		event.stopPropagation(); // Verhindert das Weiterleiten des Klicks
 
@@ -63,6 +67,13 @@
 		<img class="imgIcon" src="/x2x3-192x192.png" alt="x2_icon"/>
 		<p class="text-2xl">Triple Threat</p>
 		<div on:click={(e) => showInfo(e, 'overlayDouble', 'The goal of triple threat is to accurately hit random doubles/ triples. You can specify how many attempts you want to give to yourself.')}>
+			<InfoIcon class="infoIcon"/>
+		</div>
+	</div>
+	<div class="max-w-xs trainingDivs clickable" on:click={handleCheckoutBtn}>
+		<img class="imgIcon" src="/checkout-v4-192x192.png" alt="checkout_icon"/>
+		<p class="text-2xl">Checkout Blitz</p>
+		<div on:click={(e) => showInfo(e, 'overlayCheckout', 'You get a random number of points and a set number of darts you can throw to finish the game.')}>
 			<InfoIcon class="infoIcon"/>
 		</div>
 	</div>

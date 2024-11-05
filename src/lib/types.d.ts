@@ -45,6 +45,12 @@ declare interface Precision extends Training {
 	hitsNeeded: HitsNeeded;
 }
 
+declare interface Checkout extends Training {
+	max: number;
+	throws: number;
+	out: string;
+}
+
 interface SessionDescription {
 	type: RTCSdpType;
 	sdp: string | undefined;
