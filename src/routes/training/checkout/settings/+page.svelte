@@ -4,24 +4,46 @@
 	import { errorToast, successToast } from '$lib/toast';
 	import { UserIcon } from 'svelte-feather-icons';
 	import { LogOutIcon } from 'svelte-feather-icons';
+	import { InfoIcon } from 'svelte-feather-icons';
 
     import Button from '$lib/components/Button.svelte';
 	import Checkbox from '$lib/components/Checkbox.svelte';
 	import { training } from '$lib/stores';
 
-	let trainingForm = { max: 180, throws: 3, out: "single"} as Checkout;
+	let trainingForm = { max: 170, throws: 3, out: "single"} as Checkout;
 
 	/**
 	 * Handles the Letsdothis Button
 	 */
-	function handleGoBtn() {
+	function handleLetsDoThisBtn() {
 		training.set(trainingForm);
 		goto('/training/checkout/checkoutGame');
     }
     
     let preMax = 6;
 
-	$: trainingForm.max = preMax * 30;
+	$: trainingForm.max = preMax * 30 - 10;
+
+	let showOverlay = false;
+	let overlayMode = '';
+	let overlayContent = '';
+	let overlayPosition = { top: '0', left: '0' };
+	const overlayWidth = 200; // Beispielbreite des Overlays
+	const overlayHeight = 100; // Beispielhöhe des Overlays
+
+	function showInfo(event: MouseEvent, mode: string, content: string) {
+		event.stopPropagation(); // Verhindert das Weiterleiten des Klicks
+
+		overlayMode = mode;
+
+		overlayContent = content;
+
+		showOverlay = true;
+	}
+
+	function closeOverlay() {
+		showOverlay = false;
+	}
 </script>
 
 <div class="max-w-xs mx-auto flex flex-col gap-6">
@@ -35,10 +57,14 @@
 			ticked
 			accent="accent-primary-500 dark:accent-primary-500"
 		>
-			<div class="font-bold text-md">
-				Max Points
+			<div class="flex">
+				<div class="font-bold text-md">
+					Max Points
+				</div>
+				<div on:click={(e) => showInfo(e, 'overlayMaxPoints', 'The maximum number of points from which you have to play down. Minimum equals your set Maximum - 20.')}>
+					<InfoIcon class="w-4 h-4 clickable ml-1"/>
+				</div>
 			</div>
-			<!-- TODO: Info Icon, um zu erklären, was gemeint ist ?-->
 		</RangeSlider>
         <div class="flex justify-between">
             <div class="text-left">20</div>
@@ -61,7 +87,7 @@
 			<div class="font-bold text-md">
 				Throws
 			</div>
-			<!-- TODO: Info Icon, um zu erklären, was mit Trys gemeint ist -->
+			<!-- TODO: Info Icon, um zu erklären, was mit Trys gemeint ist? -->
 		</RangeSlider>
         <div class="flex justify-between">
             <div class="text-left settingsSliderDiv3">3</div>
@@ -77,8 +103,8 @@
 			<RadioItem bind:group={trainingForm.out} name="double" value="double">Double</RadioItem>
 		</RadioGroup>
 	</div>
-	<div class="mt-4">
-		<Button text="Let's do this!" onClick={handleGoBtn}/>
+	<div class="mt-4 pl-10 pr-10">
+		<Button text="Let's do this!" onClick={handleLetsDoThisBtn}/>
 	</div>
 
 	<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
@@ -86,4 +112,13 @@
 			<LogOutIcon/>
 		</button>
 	</div>
+
+	{#if showOverlay}
+		<div class="max-w-xs mx-auto flex flex-col gap-7 overlay {overlayMode}" on:click={closeOverlay}>
+			<div class="overlay-content" style="top: {overlayPosition.top}; left: {overlayPosition.left};" on:click|stopPropagation>
+				<p>{@html overlayContent}</p>
+				<button class="close-button btn variant-filled-primary w-full py-2 px-4" on:click={closeOverlay}>Schließen</button>
+			</div>
+		</div>
+	{/if}
 </div>
