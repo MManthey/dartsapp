@@ -31,6 +31,11 @@
 	function handleTrainingBtn() {
 		goto('/training');
 	}
+
+	function handleStatisticBtn() {
+		goto('/testStatistics');
+	}
+	
 </script>
 
 <div class="max-w-xs mx-auto flex flex-col gap-7">
@@ -48,4 +53,7 @@
 	<br>
 	<div class="text-center">Want to train before playing?</div>
 	<Button text="Training" onClick={handleTrainingBtn}/>
+	
+	<div class="text-center">Statistic Testing:</div>
+	<Button text="Test!" onClick={handleStatisticBtn}/>
 </div>
