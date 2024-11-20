@@ -35,4 +35,4 @@ function createPersistentStore<T>(key: string, initialValue: T): Writable<T> {
     return store;
 }
 
-export const userStats = createPersistentStore('userStats', { gamesPlayed: 0, highScore: 0 });
+export const userStats = createPersistentStore('userStats', { gamesPlayed: 0, gameWins: 0, throwCount: 0, averageThrow: 0, doubleCount: 0, tripleCount: 0, triple20Count: 0, bullseyeCount: 0 });
