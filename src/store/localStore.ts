@@ -1,38 +1,51 @@
-import { writable, type Writable } from 'svelte/store';
+import { writable } from "svelte/store";
 
-function createPersistentStore<T>(key: string, initialValue: T): Writable<T> {
-    const isBrowser = typeof window !== 'undefined';
+function createGameDataStore() {
+    const isBrowser = typeof window !== "undefined";
 
-    // Standardwert auf initialValue setzen
-    let storedValue: T = initialValue;
+    // Lade die gespeicherten Daten oder initialisiere mit leeren Daten
+    let initialData = isBrowser ? JSON.parse(localStorage.getItem("gameData") || "[]") : [];
 
-    if (isBrowser) {
-        // Nur im Browser zugreifen, um Fehler zu vermeiden
-        const json = localStorage.getItem(key);
-        if (json) {
-            try {
-                storedValue = JSON.parse(json);
-            } catch (e) {
-                console.error(`Fehler beim Laden des localStorage für ${key}:`, e);
-                localStorage.removeItem(key); // Lösche fehlerhafte Daten
-            }
-        }
-    }
-
-    const store = writable<T>(storedValue);
+    const { subscribe, set, update } = writable(initialData);
 
     if (isBrowser) {
-        // Speichern der aktuellen Werte im localStorage
-        store.subscribe(value => {
-            try {
-                localStorage.setItem(key, JSON.stringify(value));
-            } catch (e) {
-                console.error(`Fehler beim Speichern von ${key} in localStorage:`, e);
-            }
+        subscribe(value => {
+            localStorage.setItem("gameData", JSON.stringify(value));
         });
     }
 
-    return store;
+    return {
+        subscribe,
+        reset: () => set([]), // Setzt die Daten zurück
+        testaddRandomThrow: (date: number, throwValue: number) =>
+            update(data => {
+                // Suche nach dem aktuellen Tag
+                let todayIndex = data.findIndex(day => day[0] === date);
+
+                if (todayIndex === -1) {
+                    // Neuer Tag hinzufügen
+                    const newDay = [date, 0, 0, 0, 0, throwValue];
+                    return [...data, newDay];
+                } else {
+                    // Existierender Tag: Wurf hinzufügen
+                    const updatedDay = [...data[todayIndex]];
+                    updatedDay.push(throwValue);
+                    data[todayIndex] = updatedDay;
+                    return [...data];
+                }
+            }),
+    };
 }
 
-export const userStats = createPersistentStore('userStats', { gamesPlayed: 0, gameWins: 0, throwCount: 0, averageThrow: 0, doubleCount: 0, tripleCount: 0, triple20Count: 0, bullseyeCount: 0 });
+
+// Detailled Info     -----------------------------!THIS IS IMPORTANT TO UNDERSTAND THE STORE!----------------------------
+//  JSON Format: [ day, day, day, day... ]
+//      day: [ date, winCount, lossCount, outs, nonOuts, throw1, throw2, throw3, ..., throwN ]
+//          date (Index 0): number -> 0 represents 01.01.2024; 1 - 02.01.2024; ... ; 366 - 01.01.2025 (one more because Schaltjahr!!!); etc.
+//          winCount (Index 1): number
+//          lossCount (Index 2): number
+//          outs (Index 3): number -> How many throws were the one that brought the own points to 0
+//          nonOuts (Index 4): number -> how many throws COULD have been outs but were not hit (over/ under)
+//          throw (From Index 5): number -> First charater for Single/ Double/ Triple, rest is the hit number: 
+//                           11 represents Single 1; 320 - Triple 20; 125 Single Bull, 225 - Bullseye
+export const gameData = createGameDataStore();
