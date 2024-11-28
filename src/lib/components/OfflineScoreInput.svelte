@@ -5,10 +5,24 @@
 	import { game, players } from '$lib/stores';
 	import { dartStr, dartTotal } from '$lib/util';
 	import { errorToast } from '$lib/toast';
+	import { gameData } from '../../store/localStore';
 
 	import DartSVG from './DartSVG.svelte';
 
 	export let index: number;
+
+	//special Day calc for data storage
+	const currentDate = new Date();
+	let currentDay = Math.floor(
+            (Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()) -
+                Date.UTC(currentDate.getFullYear(), 0, 1)) /
+                (24 * 60 * 60 * 1000)
+        );
+	let addWins = 0;
+	let addLoss = 0;
+	let outs = 0;
+	let nonOuts = 0;
+	let allDarts: Dart[] = [];
 
 	const dartCount = 3;
 	const possibleScores = [...Array(21).keys()].concat([25]);
@@ -158,7 +172,19 @@
 
 			let gameWon = false;
 
+			//nur hinzufügen, wenn erster Spieler
+			if (index === 0) {
+				//add darts to stats
+				allDarts.push({ ...darts[0] }, { ...darts[1] }, { ...darts[2] });
+			}
+
 			if (legWon) {
+				if (index === 0) {
+					outs++;
+				}
+				if (nonOuts > 0) {
+					nonOuts--;
+				}
 				legs += 1;
 				// was set won? -> increment player sets, reset legs and score
 				const setWon = legs === $game.legs;
@@ -167,6 +193,14 @@
 					gameWon = sets === $game.sets;
 
 					if (gameWon) {
+						//win/lose + adding stats to store
+						if (index === 0) {
+							addWins += 1;
+						} else {
+							addLoss += 1;
+						}
+						gameData.addDataSet(currentDay, addWins > 0 ? true : addLoss > 0 ? false : null, outs, nonOuts, allDarts);
+
 						$players[index] = {
 							...player,
 							remaining: newRemaining,
@@ -248,6 +282,27 @@
 			errorToast(msg);
 		} finally {
 			isLoading = false;
+		}
+	}
+
+	let checkThrowCount = 0;
+	/**
+	 * Checks if the player had a one throw out
+	 */
+	function checkOuts() {
+		if (index === 0) {
+			let rem = player.remaining;
+			for (let i = 0; i < checkThrowCount + 1; i++) {
+				rem -= darts[i].s * darts[i].x;
+			}
+			console.log("remain: " + rem);
+			console.log("checkCount: " + checkThrowCount);
+			if (index === 0 && rem <= 60 
+				&& (($game?.outMode === 'double' && (rem <= 40 && rem % 2 === 0)) 
+				|| ($game?.outMode === 'single' && (rem <= 20 || (rem <= 40 && rem % 2 === 0) || (rem % 3 === 0)))) ) {
+				nonOuts++;
+			}
+			checkThrowCount = (checkThrowCount + 1) % 3;
 		}
 	}
 </script>
@@ -413,6 +468,7 @@
 			class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square"
 			disabled={darts[i].s === null}
 			on:click={async () => {
+				checkOuts();
 				if (allSet) {
 					await endTurn();
 				} else {

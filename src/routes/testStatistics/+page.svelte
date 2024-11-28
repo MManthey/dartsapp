@@ -98,6 +98,7 @@
 		gameData.reset(); // Reset all data
     }
     //-----------------------------------------------------------------------------------------------------------------------
+    console.log("out / non: " + $stats.outs + " / " + $stats.nonOuts);
 </script>
 
 <div class="table-container border-token border-surface-400-500-token">
@@ -130,8 +131,8 @@
                 <td class="text-center w-1/2">{$stats.totalGames ?? 0}</td>
             </tr>
             <tr>
-                <td class="text-center w-1/2">Wins/Losses:</td>
-                <td class="text-center w-1/2">{$stats.wins ?? 0}/{$stats.losses ?? 0}</td>
+                <td class="text-center w-1/2">Wins | Losses:</td>
+                <td class="text-center w-1/2">{$stats.wins ?? 0} | {$stats.losses ?? 1}</td>
             </tr>
             <tr>
                 <td class="text-center w-1/2">Throw Count:</td>
@@ -140,6 +141,10 @@
             <tr>
                 <td class="text-center w-1/2">Throw Average:</td>
                 <td class="text-center w-1/2">{$stats.avgThrow ? $stats.avgThrow.toFixed(2) : "0.00"}</td>
+            </tr>
+            <tr>
+                <td class="text-center w-1/2">Out Ratio:</td>
+                <td class="text-center w-1/2">{$stats.outs ?? 0} / {$stats.nonOuts ?? 0}</td>
             </tr>
             <tr>
                 <td class="text-center w-1/2">Double Count:</td>
@@ -161,7 +166,7 @@
     </table>
 </div>
 
-<!-- ----------------------------------------TESTING BUTTONS!!---------------------------------------------------- -->
+<!-- ----------------------------------------TESTING BUTTONS!!---------------------------------------------------- 
 <div class="m-4 flex justify-center">
     <button class="m-2 text-sm btn-icon-xl border p-4" type="button" on:click={updateStats}>
         +1 Heute
@@ -173,7 +178,7 @@
         +1 vor 6 M.
     </button>
 </div>
-<!-- ------------------------------------------------------------------------------------------------------------- -->
+ ------------------------------------------------------------------------------------------------------------- -->
 
 <div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-8">
 	<button class="btn-icon btn-icon-xl variant-filled-error" type="button" on:click={() => { goto('/'); }}>
