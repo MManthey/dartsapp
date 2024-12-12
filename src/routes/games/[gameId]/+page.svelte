@@ -43,6 +43,8 @@
 	import DartSVG from '$lib/components/DartSVG.svelte';
 	import WinnerModal from '$lib/components/WinnerModal.svelte';
 
+	import { gameData } from '../../../store/localStore';
+
 	const subscriptions: (() => void)[] = [];
 	const playerStateSubs: Map<string, () => void> = new Map();
 
@@ -78,6 +80,14 @@
 	// $: console.log('onTurnPlayerId:', onTurnPlayerId);
 	// $: console.log('offTurnPlayers:', offTurnPlayers);
 	// $: console.log('mode:', mode);
+
+	//special Day calc for data storage
+	const currentDate = new Date();
+	let currentDay = Math.floor(
+            (Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()) -
+                Date.UTC(currentDate.getFullYear(), 0, 1)) /
+                (24 * 60 * 60 * 1000)
+        );
 
 	async function handleCamBtn(): Promise<void> {
 		try {
@@ -377,6 +387,14 @@
 		if (newState === 'closed' && $game?.turnIdx === index) {
 			mode = 'score';
 		} else if (newState === 'over') {
+			// Überprüfen, ob der aktuelle Spieler gewonnen hat
+			const winningPlayerId = $players[$game.turnIdx]?.id; // Spieler, der gewonnen hat
+			const isCurrentPlayerWinner = winningPlayerId === $userId; // Ist es der ausführende Spieler?
+
+			// Gewinne/Verluste für Statistiken bestimmen
+			let winStat = isCurrentPlayerWinner ? true : false; // true = gewonnen, false = verloren
+			gameData.addWinOrLoss(currentDay, winStat);
+
 			const modalComponent: ModalComponent = {
 				// Pass a reference to your custom component
 				ref: WinnerModal,

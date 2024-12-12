@@ -174,8 +174,11 @@
 
 			//nur hinzufügen, wenn erster Spieler
 			if (index === 0) {
-				//add darts to stats
-				allDarts.push({ ...darts[0] }, { ...darts[1] }, { ...darts[2] });
+				darts.forEach(element => {
+					if (element.s !== null) {
+						allDarts.push({ ...element });
+					}
+				});
 			}
 
 			if (legWon) {
@@ -295,8 +298,6 @@
 			for (let i = 0; i < checkThrowCount + 1; i++) {
 				rem -= darts[i].s * darts[i].x;
 			}
-			console.log("remain: " + rem);
-			console.log("checkCount: " + checkThrowCount);
 			if (index === 0 && rem <= 60 
 				&& (($game?.outMode === 'double' && (rem <= 40 && rem % 2 === 0)) 
 				|| ($game?.outMode === 'single' && (rem <= 20 || (rem <= 40 && rem % 2 === 0) || (rem % 3 === 0)))) ) {

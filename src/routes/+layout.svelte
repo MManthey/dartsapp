@@ -21,9 +21,9 @@
 	>
 		<Logo />
 	</div>
-	<div class="flex-1 flex justify-end">
+	<!--<div class="flex-1 flex justify-end">
 		<LightSwitch />
-	</div>
+	</div> -->
 </div>
 
 <main>

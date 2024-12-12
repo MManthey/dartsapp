@@ -65,6 +65,30 @@ function createGameDataStore() {
                     return [...data];
                 }
             }),
+        //True wenn win, false wenn loss
+        addWinOrLoss: (date: number, win: boolean) =>
+            update(data => {
+                // Suche nach dem aktuellen Tag
+                let todayIndex = data.findIndex(day => day[0] === date);
+
+                let winAdd = win === null || !win ? 0 : 1;
+                let loseAdd = win === null || win ? 0 : 1;
+
+                if (todayIndex === -1) {
+                    // Neuer Tag hinzufügen
+                    const newDay = [date, winAdd, loseAdd, 0, 0];
+                    return [...data, newDay]
+                } else {
+                    // Existierender Tag: Wurf hinzufügen
+                    const updatedDay = [...data[todayIndex]];
+                    
+                    updatedDay[1] += winAdd;
+                    updatedDay[2] += loseAdd;
+
+                    data[todayIndex] = updatedDay;
+                    return [...data];
+                }
+            }),
     };
 }
 
