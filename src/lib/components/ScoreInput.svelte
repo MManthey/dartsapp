@@ -177,9 +177,7 @@
 					allDarts.push({ ...element });
 				}
 			});
-			//add darts to stats
-			console.log("push darts: " + darts[0].s + " * " + darts[0].x + "; " + darts[1].s + " * " + darts[1].x + "; " + darts[2].s + " * " + darts[2].x);
-
+			
 			if (legWon) {
 				//prep statistics
 				outs++;
@@ -293,7 +291,6 @@
 	 * Checks if the player had a one throw out
 	 */
 	function checkOuts() {
-		console.log("checkOuts.");
 		let rem = player.remaining;
 		for (let i = 0; i < checkThrowCount + 1; i++) {
 			rem -= darts[i].s * darts[i].x;

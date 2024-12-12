@@ -49,30 +49,33 @@
 <div class="max-w-xs mx-auto flex flex-col gap-7">
 	<div class="text-3xl text-center my-6">Training Modi</div>
 
-	<div class="max-w-xs trainingDivs clickable" on:click={handleCricketBtn}>
+	<div class="max-w-xs trainingDivs clickable flex items-center justify-between" on:click={handleCricketBtn}>
 		<img class="imgIcon" src="/cricket-192x192.png" alt="cricket_icon"/>
-		<p class="text-2xl">Cricket Mode</p>
+		<p class="text-2xl text-center flex-1 mx-4">Cricket Mode</p>
 		<div on:click={(e) => showInfo(e, 'overlayCricket', 'In the Cricket Training Mode you have to hit every number, including 25, 3 times. Double/ triple also counts for two or three hits.')}>
 			<InfoIcon class="infoIcon"/>
 		</div>
 	</div>
-	<div class="max-w-xs trainingDivs clickable" on:click={handlePrecisionBtn}>
+
+	<div class="max-w-xs trainingDivs clickable flex items-center justify-between" on:click={handlePrecisionBtn}>
 		<img class="imgIcon" src="/aim-192x192.png" alt="aim_icon"/>
-		<p class="text-2xl">Precision Training</p>
+		<p class="text-2xl text-center flex-1 mx-4">Precision Training</p>
 		<div on:click={(e) => showInfo(e, 'overlayZiel', 'Precision training thrives to teach you to slowly get better at accurately hitting the board. It might start off easy but one mistake and you might have to start all over again!')}>
 			<InfoIcon class="infoIcon"/>
 		</div>
 	</div>
-	<div class="max-w-xs trainingDivs clickable" on:click={handleTripleBtn}>
+
+	<div class="max-w-xs trainingDivs clickable flex items-center justify-between" on:click={handleTripleBtn}>
 		<img class="imgIcon" src="/x2x3-192x192.png" alt="x2_icon"/>
-		<p class="text-2xl">Triple Threat</p>
+		<p class="text-2xl text-center flex-1 mx-4">Triple Threat</p>
 		<div on:click={(e) => showInfo(e, 'overlayDouble', 'The goal of triple threat is to accurately hit random doubles/ triples. You can specify how many attempts you want to give to yourself.')}>
 			<InfoIcon class="infoIcon"/>
 		</div>
 	</div>
-	<div class="max-w-xs trainingDivs clickable" on:click={handleCheckoutBtn}>
+
+	<div class="max-w-xs trainingDivs clickable flex items-center justify-between" on:click={handleCheckoutBtn}>
 		<img class="imgIcon" src="/checkout-v4-192x192.png" alt="checkout_icon"/>
-		<p class="text-2xl">Checkout Blitz</p>
+		<p class="text-2xl text-center flex-1 mx-4">Checkout Blitz</p>
 		<div on:click={(e) => showInfo(e, 'overlayCheckout', 'You get a random number of points and a set number of darts you can throw to finish the game.')}>
 			<InfoIcon class="infoIcon"/>
 		</div>

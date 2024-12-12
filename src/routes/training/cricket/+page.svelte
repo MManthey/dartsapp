@@ -1,151 +1,100 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { InfoIcon } from 'svelte-feather-icons';
+
 	import { LogOutIcon } from 'svelte-feather-icons';
-	import { modalStore } from '@skeletonlabs/skeleton';
+	
+	let showOverlay = false;
+	let overlayContent = '';
+	let overlayPosition = { top: '0px', left: '50%' }; // Standardwerte für left bleiben erhalten
 
-	import type { ModalSettings, ModalComponent } from '@skeletonlabs/skeleton';
-	import { CheckIcon, ChevronLeftIcon, ChevronRightIcon } from 'svelte-feather-icons';
-	import { ProgressRadial } from '@skeletonlabs/skeleton';
-
-	import { training } from '$lib/stores';
-	import WinnerModal from '$lib/components/WinnerModal.svelte'; // Importiere das Modal
-
-	let isLoading = false;
-	const possibleScores = [...Array(21).keys()].concat([25]);
-	let trainingForm = { nums: new Array(22).fill(0), throws: 0 } as Cricket;
-
-	let darts = { s: 0, x: 1 } as Dart;
-
-	$: allSet = false;
-
-	let gridColors = new Array(25).fill('cricketGridsColorNorm');
-
-	//Funktion zum updaten der gespeicherten Anzahl an getroffenen Zahlen
-	function updateNums(num: number, mult: number) {
-		let colorNum = num;
-		//25 ist an der Stelle 21 im Array!
-		if (num === 25) {
-			num -= 4;
-		}
-		if (num !== 0 && trainingForm.nums[num] < 3) {
-			trainingForm.nums[num] += mult;
-			if (trainingForm.nums[num] > 3) {
-				trainingForm.nums[num] = 3;
-			}
-			if (trainingForm.nums[num] === 3) {
-				gridColors[colorNum - 1] = 'cricketGridsColorDone';
-			}
-		}
-		allSet = trainingForm.nums.slice(1).every(num => num === 3);
-		trainingForm.throws++;
+	function handleBackBtn() {
+		goto('../');
 	}
 
-	training.set(trainingForm);
+	function handleCricketBtn() {
+		goto('/training/cricket');
+	}
 
-	// Funktion zum Öffnen des Gewinner-Modals
-	function openModal() {
-		const modalComponent: ModalComponent = {
-			ref: WinnerModal,
-			props: { background: 'bg-primary-500' },
-			slot: `<p class="text-white"> You have completed the training with ${trainingForm.throws} throws!</p>`
-		};
-		const modal: ModalSettings = {
-			type: 'component',
-			component: modalComponent
-		};
-		modalStore.trigger(modal);
+	function handleTripleBtn() {
+		goto('/training/triple/settings');
+	}
 
-		setTimeout(() => {
-			goto('/');
-		}, 1000);
+	function handlePrecisionBtn() {
+		goto('/training/precision/settings');
+	}
+
+	function handleCheckoutBtn() {
+		goto('/training/checkout/settings');
+	}
+
+	function showInfo(event: MouseEvent, content: string) {
+		event.stopPropagation(); // Verhindert das Weiterleiten des Klicks
+
+		// Berechne nur den `top`-Wert relativ zur geklickten Icon-Position
+		const target = event.currentTarget as HTMLElement;
+		const rect = target.getBoundingClientRect();
+		overlayPosition = {
+			...overlayPosition, // Behalte `left` und andere Eigenschaften bei
+			top: `${rect.bottom + 10}px`, // Setze neuen `top`-Wert
+		};
+
+		overlayContent = content;
+		showOverlay = true;
+	}
+
+	function closeOverlay() {
+		showOverlay = false;
 	}
 </script>
 
 <div class="max-w-xs mx-auto flex flex-col gap-7">
-	<div class="text-3xl text-center my-6">Cricket</div>
-</div>
+	<div class="text-3xl text-center my-6">Training Modi</div>
 
-<div class="flex flex-col gap-8 items-center">
-	<div class="w-full card p-7 bg-primary-500 text-white">
-		<div class="grid grid-cols-3 gap-2">
-			{#each possibleScores as score}
-				{#if score !== 0}
-					<div class="cricketGrids {gridColors[score - 1]} flex">
-						<div class="cricketScore">
-							{score}:
-						</div>
-						<div class="cricketScoreDiv">
-							<!-- abfangen, dass man mit 25 nicht auf den arrayplatz von 25 zugreifen kann! (i=21) -->
-							{#if score !== 25}
-								{#each Array(trainingForm.nums[score]) as _, i}
-									<svg class="w-3 md:w-3 lg:w-3 aspect-square" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-										<path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
-									</svg>
-								{/each}
-								{#each Array(3 - trainingForm.nums[score]) as _, i}
-									<svg class="w-3 md:w-3 lg:w-3 aspect-square" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-										<path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z" />
-									</svg>
-								{/each}
-							{:else}
-								{#each Array(trainingForm.nums[21]) as _, i}
-									<svg class="w-3 md:w-3 lg:w-3 aspect-square" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-										<path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
-									</svg>
-								{/each}
-								{#each Array(3 - trainingForm.nums[21]) as _, i}
-									<svg class="w-3 md:w-3 lg:w-3 aspect-square" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-										<path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z" />
-									</svg>
-								{/each}
-							{/if}
-						</div>
-					</div>
-				{/if}
-			{/each}
+	<div class="max-w-xs trainingDivs clickable flex items-center justify-between" on:click={handleCricketBtn}>
+		<img class="imgIcon" src="/cricket-192x192.png" alt="cricket_icon" />
+		<p class="text-2xl text-center flex-1 mx-4">Cricket Mode</p>
+		<div on:click={(e) => showInfo(e, 'In the Cricket Training Mode you have to hit every number, including 25, 3 times. Double/ triple also counts for two or three hits.')}>
+			<InfoIcon class="infoIcon" />
 		</div>
 	</div>
 
-	<div class="w-full grid grid-cols-3 gap-2">
-		<button class="btn btn-lg rounded-lg {darts.x === 1 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" on:click={async () => { darts.x = 1; }}>
-			Single
-		</button>
-		<button class="btn btn-lg rounded-lg {darts.x === 2 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" on:click={async () => { darts.x = darts.x === 2 ? 1 : 2; }}>
-			Double
-		</button>
-		<button class="btn btn-lg rounded-lg {darts.x === 3 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" disabled={(darts.s || 0) > 20} on:click={async () => { darts.x = darts.x === 3 ? 1 : 3; }}>
-			Triple
-		</button>
+	<div class="max-w-xs trainingDivs clickable flex items-center justify-between" on:click={handlePrecisionBtn}>
+		<img class="imgIcon" src="/aim-192x192.png" alt="aim_icon" />
+		<p class="text-2xl text-center flex-1 mx-4">Precision Training</p>
+		<div on:click={(e) => showInfo(e, 'Precision training thrives to teach you to slowly get better at accurately hitting the board.')}>
+			<InfoIcon class="infoIcon" />
+		</div>
 	</div>
 
-	<div class="w-full grid grid-cols-6 gap-2">
-		{#each possibleScores as score}
-			<button class="btn btn-lg rounded-lg p-0 aspect-square {darts.s === score ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" disabled={score === 25 && darts.x === 3} on:click={async () => { darts.s = darts.s === score ? null : score; }}>
-				{score}
-			</button>
-		{/each}
-		<button class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square" on:click={async () => { darts = { s: null, x: 1 }; }}>
-			<ChevronLeftIcon />
-		</button>
-		<button class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square" disabled={darts.s === null} on:click={async () => {
-			updateNums(darts.s, darts.x);
-			if (allSet) {
-				openModal(); // Winner Modal öffnen
-			}
-		}}>
-			{#if isLoading}
-				<ProgressRadial stroke={120} width="w-6" />
-			{:else if allSet}
-				<CheckIcon />
-			{:else}
-				<ChevronRightIcon />
-			{/if}
-		</button>
+	<div class="max-w-xs trainingDivs clickable flex items-center justify-between" on:click={handleTripleBtn}>
+		<img class="imgIcon" src="/x2x3-192x192.png" alt="x2_icon" />
+		<p class="text-2xl text-center flex-1 mx-4">Triple Threat</p>
+		<div on:click={(e) => showInfo(e, 'The goal of triple threat is to accurately hit random doubles/ triples.')}>
+			<InfoIcon class="infoIcon" />
+		</div>
+	</div>
+
+	<div class="max-w-xs trainingDivs clickable flex items-center justify-between" on:click={handleCheckoutBtn}>
+		<img class="imgIcon" src="/checkout-v4-192x192.png" alt="checkout_icon" />
+		<p class="text-2xl text-center flex-1 mx-4">Checkout Blitz</p>
+		<div on:click={(e) => showInfo(e, 'You get a random number of points and a set number of darts you can throw to finish the game.')}>
+			<InfoIcon class="infoIcon" />
+		</div>
 	</div>
 
 	<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
-		<button class="btn-icon btn-icon-xl variant-filled-error" type="button" on:click={() => { goto('/'); $training = null; }}>
-			<LogOutIcon/>
+		<button class="btn-icon btn-icon-xl variant-filled-error" type="button" on:click={() => goto('/')}>
+			<LogOutIcon />
 		</button>
 	</div>
+
+	{#if showOverlay}
+		<div class="overlay" on:click={closeOverlay}>
+			<div class="overlay-content" style="top: {overlayPosition.top}; left: {overlayPosition.left};" on:click|stopPropagation>
+				<p>{overlayContent}</p>
+				<button class="close-button btn variant-filled-primary w-full py-2 px-4" on:click={closeOverlay}>Schließen</button>
+			</div>
+		</div>
+	{/if}
 </div>

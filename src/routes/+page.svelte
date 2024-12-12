@@ -31,10 +31,6 @@
 	function handleTrainingBtn() {
 		goto('/training');
 	}
-
-	function handleStatisticBtn() {
-		goto('/testStatistics');
-	}
 	
 </script>
 
@@ -50,10 +46,6 @@
 		<Button text="Create" disabled={!$userName} onClick={handleCreateBtn} />
 		<Button text="Join" disabled={!$userName || shortId.length !== 4} onClick={handleJoinBtn} />
 	</div>
-	<br>
-	<div class="text-center">Want to train before playing?</div>
+	<div class="text-center mt-5">Want to train before playing?</div>
 	<Button text="Training" onClick={handleTrainingBtn}/>
-	
-	<div class="text-center">Statistic Testing:</div>
-	<Button text="Test!" onClick={handleStatisticBtn}/>
 </div>

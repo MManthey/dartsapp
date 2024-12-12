@@ -100,7 +100,7 @@
 				}
 				break;
 			default: 
-				console.log("Something went wrong in the difficulty, please reload!");
+				console.log("Something went wrong regarding the difficulty, please reload!");
 				break;
 		}
 	}

@@ -9,7 +9,15 @@
 
     let currentDay = -1;
 
-    //TODO: STRESS TEST WITH MORE DATA
+    let options = ["Last Week", "Last Month", "Last Year", "All Time"];
+    let showMenu = false;
+
+    function selectOption(option: string) {
+        selectedTimeframe.set(option);
+        console.log("test");
+        showMenu = false; // Menü schließen
+        console.log("showMenu: " + showMenu);
+    }
 
 	// Helper: Get statistics for a specific timeframe
 	const getStatsForTimeframe = (timeframe: string, data: any[]) => {
@@ -95,10 +103,9 @@
     }
 
 	function clearStats() {
-		gameData.reset(); // Reset all data
+		gameData.reset(); // Reset all data to 0
     }
     //-----------------------------------------------------------------------------------------------------------------------
-    console.log("out / non: " + $stats.outs + " / " + $stats.nonOuts);
 </script>
 
 <div class="table-container border-token border-surface-400-500-token">
@@ -109,19 +116,39 @@
     <!-- Border -->
     <div class="border-t-[0.5px] border-surface-400"></div>
 
-    <!-- Dropdown for Timeframe -->
-    <div class="flex w-full justify-center items-center py-2 dark:bg-surface-800">
+    <div class="relative flex w-full justify-center items-center py-2 dark:bg-surface-800">
         <label for="timeframe" class="mb-0.5 text-center mr-2 text-white">Timeframe:</label>
-        <select
-            id="timeframe"
-            bind:value={$selectedTimeframe}
-            class="ml-1 mt-1 mb-1 dark:bg-surface-800 text-sm text-white border rounded py-1"
+
+        <!-- Custom Dropdown -->
+        <div
+            class="relative ml-2 mr-2"
+            on:click={() => (showMenu = !showMenu)}
         >
-            <option class="ml-1" value="Last Week">Last Week</option>
-            <option value="Last Month">Last Month</option>
-            <option value="Last Year">Last Year</option>
-            <option value="All Time">All Time</option>
-        </select>
+            <button
+                class="dark:bg-surface-800 text-sm text-white border rounded py-1 px-5 focus:outline-none "
+            >
+                {$selectedTimeframe}
+            </button>
+
+            {#if showMenu}
+                <div
+                    class="absolute mt-2 dark:bg-surface-800 border rounded shadow-lg w-full max-w-xs z-50 items-center"
+                    on:click|stopPropagation
+                >
+                    {#each options as option}
+                        <div
+                            class="flex items-center justify-center px-2 py-1.5 text-sm text-white cursor-pointer hover:bg-primary-500 hover:text-black"
+                            on:click={(e) => {
+                                e.stopPropagation();
+                                selectOption(option)
+                            }}
+                        >
+                            {option}
+                        </div>
+                    {/each}
+                </div>
+            {/if}
+        </div>
     </div>
 
     <table class="table table-hover rounded-t-none">
