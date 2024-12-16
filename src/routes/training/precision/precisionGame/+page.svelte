@@ -49,7 +49,7 @@
 				health++;
 			}
 			if (difficulty === 'beginner') {
-				health;
+				health++;
 			}
 			randomizeNew();
 		}
@@ -135,7 +135,8 @@
 </script>
 
 <div class="max-w-xs mx-auto flex flex-col gap-7">
-	<div class="text-3xl text-center my-6">Zielübung</div>
+	<div class="text-3xl text-center my-6">Precision</div>
+	<div class="text-2xl text-center -mt-9 mb-4">Life: {health}</div>
 </div>
 
 <div class="max-w-xs mx-auto flex flex-col gap-7 relative-container">

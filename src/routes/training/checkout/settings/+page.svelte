@@ -108,7 +108,7 @@
 	</div>
 
 	<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
-		<button class="btn-icon btn-icon-xl variant-filled-error" type="button" on:click={() => { goto('/'); $training = null;}}>
+		<button class="btn-icon btn-icon-xl variant-filled-error" type="button" on:click={() => { goto('/training'); $training = null;}}>
 			<LogOutIcon/>
 		</button>
 	</div>

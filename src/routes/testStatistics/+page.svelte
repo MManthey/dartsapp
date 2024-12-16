@@ -5,11 +5,11 @@
 	import Button from '$lib/components/Button.svelte';
 	import { writable, derived } from 'svelte/store';
 
-    export const selectedTimeframe = writable("Last Week");
+    export const selectedTimeframe = writable("Today");
 
     let currentDay = -1;
 
-    let options = ["Last Week", "Last Month", "Last Year", "All Time"];
+    let options = ["Today", "Last Week", "Last Month", "Last Year", "All Time"];
     let showMenu = false;
 
     function selectOption(option: string) {
@@ -24,7 +24,8 @@
         const currentDate = new Date();
         let startOffset = 0;
 
-        if (timeframe === "Last Week") startOffset = 7;
+        if (timeframe === "Today") startOffset = 1;
+        else if (timeframe === "Last Week") startOffset = 7;
         else if (timeframe === "Last Month") startOffset = 30;
         else if (timeframe === "Last Year") startOffset = 365;
         else if (timeframe === "All Time") return data;
@@ -125,7 +126,7 @@
             on:click={() => (showMenu = !showMenu)}
         >
             <button
-                class="dark:bg-surface-800 text-sm text-white border rounded py-1 px-5 focus:outline-none "
+                class="dark:bg-surface-800 text-sm text-white border rounded py-1 px-6 focus:outline-none "
             >
                 {$selectedTimeframe}
             </button>
