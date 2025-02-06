@@ -113,40 +113,58 @@
 	</div>
 
 	<div class="w-full grid grid-cols-3 gap-2">
-		<button class="btn btn-lg rounded-lg {darts.x === 1 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" on:click={async () => { darts.x = 1; }}>
+		<button class="btn btn-lg rounded-lg h-[66%] {darts.x === 1 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" on:click={async () => { darts.x = 1; }}>
 			Single
 		</button>
-		<button class="btn btn-lg rounded-lg {darts.x === 2 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" on:click={async () => { darts.x = darts.x === 2 ? 1 : 2; }}>
+		<button class="btn btn-lg rounded-lg h-[66%] {darts.x === 2 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" on:click={async () => { darts.x = darts.x === 2 ? 1 : 2; }}>
 			Double
 		</button>
-		<button class="btn btn-lg rounded-lg {darts.x === 3 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" disabled={(darts.s || 0) > 20} on:click={async () => { darts.x = darts.x === 3 ? 1 : 3; }}>
+		<button class="btn btn-lg rounded-lg h-[66%] {darts.x === 3 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" disabled={(darts.s || 0) > 20} on:click={async () => { darts.x = darts.x === 3 ? 1 : 3; }}>
 			Triple
 		</button>
 	</div>
 
-	<div class="w-full grid grid-cols-6 gap-2">
-		{#each possibleScores as score}
-			<button class="btn btn-lg rounded-lg p-0 aspect-square {darts.s === score ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" disabled={score === 25 && darts.x === 3} on:click={async () => { darts.s = darts.s === score ? null : score; }}>
-				{score}
+	<div class="w-full -mt-4">
+		<div class="w-full grid grid-cols-5 gap-2">
+			{#each possibleScores as score}
+				{#if score <= 19} 
+					<button class="btn btn-lg rounded-lg p-0 aspect-square {darts.s === score ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" disabled={score === 25 && darts.x === 3} on:click={async () => { darts.s = darts.s === score ? null : score; }}>
+						{score}
+					</button>
+				{/if} 
+			{/each}
+		</div>
+		<div class="w-full mt-2 grid grid grid-cols-10 gap-2">
+			<button class="btn btn-lg rounded-lg p-0 aspect-square col-span-2 {darts.s === 20 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" 
+				on:click={async () => { darts.s = darts.s === 20 ? null : 20; }}
+			>
+				20
 			</button>
-		{/each}
-		<button class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square" on:click={async () => { darts = { s: null, x: 1 }; }}>
-			<ChevronLeftIcon />
-		</button>
-		<button class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square" disabled={darts.s === null} on:click={async () => {
-			updateNums(darts.s, darts.x);
-			if (allSet) {
-				openModal(); // Winner Modal öffnen
-			}
-		}}>
-			{#if isLoading}
-				<ProgressRadial stroke={120} width="w-6" />
-			{:else if allSet}
-				<CheckIcon />
-			{:else}
-				<ChevronRightIcon />
-			{/if}
-		</button>
+			<button class="btn btn-lg rounded-lg p-0 aspect-square col-span-2 {darts.s === 25 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}" 
+				disabled={darts.x === 3} 
+				on:click={async () => { darts.s = darts.s === 25 ? null : 25; }}>
+				25
+			</button>
+			<button class="btn btn-lg rounded-lg variant-filled-primary p-0 col-span-3" 
+				on:click={async () => { darts = { s: null, x: 1 }; }}>
+				<ChevronLeftIcon />
+			</button>
+			<button class="btn btn-lg rounded-lg variant-filled-primary p-0 col-span-3" 
+				disabled={darts.s === null} on:click={async () => {
+				updateNums(darts.s, darts.x);
+				if (allSet) {
+					openModal(); // Winner Modal öffnen
+				}
+			}}>
+				{#if isLoading}
+					<ProgressRadial stroke={120} width="w-6" />
+				{:else if allSet}
+					<CheckIcon />
+				{:else}
+					<ChevronRightIcon />
+				{/if}
+			</button>
+		</div>
 	</div>
 
 	<div class="sticky bottom-5 flex flex-row justify-center gap-5 mt-5">
