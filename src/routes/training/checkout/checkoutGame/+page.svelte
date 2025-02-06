@@ -27,6 +27,8 @@
 	let outResults;
 	let throwsTillFinish = throws;
 
+	let throwCount = 0;
+
 	$: possibleOutClasses = possibleOutBools[currentThrowIndex] ? "" : currentThrowIndex >= throws ? "" : "line-through";
 	let scoreInputClass = "";
 	let endInfoClass = "hidden";
@@ -155,7 +157,10 @@
 		remaining = newRemaining;
 		let newOutResults;
 
-		throwsTillFinish--;
+		if (throwsTillFinish !== 7) {
+			throwsTillFinish--;
+		}
+		throwCount++;
 		//TODO ist das if richtig?
 		if (newRemaining === 0 || throwsTillFinish === 0) {
 			endPlay = true;
@@ -176,6 +181,7 @@
 		isLoading = false; // Ensure loading is reset
 		generateValidTargetScore(); // Generate new target score and out results
 		remaining = targetScore;
+		throwCount = 0;
 		updateOutResults(); // Update out results based on the new target score
 	}
 
@@ -206,8 +212,20 @@
 	</div>
 	<div class="flex flex-row justify-around mt-6">
 		<div class="flex flex-col items-center">
-			<h3 class="text-primary-800">Throws till finish:</h3>
-			<h1 class="h1 text-6xl">{throwsTillFinish}</h1>
+			<h3 class="text-primary-800">
+				{#if throwsTillFinish === 7}
+					Throws Count:
+				{:else}
+					Throws till finish:
+				{/if}
+			</h3>
+			<h1 class="h1 text-6xl">
+				{#if throwsTillFinish === 7}
+					{throwCount}
+				{:else}
+					{throwsTillFinish}
+				{/if}
+			</h1>
 		</div>
 		<div class="flex flex-col justify-center">
 			<div class="text-primary-800 text-center">
@@ -268,6 +286,7 @@
 				possibleOutBools[currentThrowIndex] = true;
 				currentThrowIndex--;
 				throwsTillFinish++;
+				throwCount--;
 				updateOutResults();
 				checkOuts();
 			}}
@@ -277,7 +296,12 @@
 		<button
 			class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square"
 			disabled={dartValues[currentThrowIndex] === null}
-			on:click={confirmThrow}
+			on:click={() => {
+				confirmThrow();
+				if (dartMultipliers[currentThrowIndex] !== 2 && dartMultipliers[currentThrowIndex] !== 3) {
+					dartMultipliers[currentThrowIndex] = 1;
+				}
+			}}
 		>
 			{#if isLoading}
 				<ProgressRadial stroke={120} width="w-6" />
@@ -290,36 +314,43 @@
 	<!-- wird angezeigt, wenn Spiel vorbei -->
 	<div class="ml-10 mr-10 textDiv flex flex-col items-center card p-2 text-white text-xl">
 		Game Over.
-		{#if throwsTillFinish > 0}
-			 Good job!
-			<!-- geschafft mit weniger versuchen -->
-			{#if throws > 3}
-				<!-- mit mehr als 3 würfen -->
-				 Maybe try giving yourself less throws?
-				<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
-					<Button text="Settings" onClick={() => { goto('/training/checkout/settings'); $training = null;}}/>
-				</div>
-			{:else}
-				<!-- mit nur 3 würfen -->
-				 Want to go again?
-				<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
-					<Button text="Again!" onClick={resetGame}/>
-				</div>
-			{/if}
+		{#if throwsTillFinish === 7}
+			Want to go again?
+			<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
+				<Button text="Again!" onClick={resetGame}/>
+			</div>
 		{:else}
-			{#if remaining > 0}
-				<!-- nicht geschafft-->
-				 Want to try again to see if you can do it?
-				<div class="w-1/2 m-4 mr-6 ml-6 pt-2">
-					<Button text="Try again!" onClick={resetGame}/>
-				</div>
-			{:else}
+			{#if throwsTillFinish > 0}
 				Good job!
-				<!-- geschafft, gerade so -->
-				 Want to go again?
-				<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
-					<Button text="Again!" onClick={resetGame}/>
-				</div>
+				<!-- geschafft mit weniger versuchen -->
+				{#if throws > 3}
+					<!-- mit mehr als 3 würfen -->
+					Maybe try giving yourself less throws?
+					<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
+						<Button text="Settings" onClick={() => { goto('/training/checkout/settings'); $training = null;}}/>
+					</div>
+				{:else}
+					<!-- mit nur 3 würfen -->
+					Want to go again?
+					<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
+						<Button text="Again!" onClick={resetGame}/>
+					</div>
+				{/if}
+			{:else}
+				{#if remaining > 0}
+					<!-- nicht geschafft-->
+					Want to try again to see if you can do it?
+					<div class="w-1/2 m-4 mr-6 ml-6 pt-2">
+						<Button text="Try again!" onClick={resetGame}/>
+					</div>
+				{:else}
+					Good job!
+					<!-- geschafft, gerade so -->
+					Want to go again?
+					<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
+						<Button text="Again!" onClick={resetGame}/>
+					</div>
+				{/if}
 			{/if}
 		{/if}
 	</div>

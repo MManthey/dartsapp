@@ -10,7 +10,7 @@
 	import Checkbox from '$lib/components/Checkbox.svelte';
 	import { training } from '$lib/stores';
 
-	let trainingForm = { max: 170, throws: 3, out: "single"} as Checkout;
+	let trainingForm = { max: 170, throws: 7, out: "single"} as Checkout;
 
 	/**
 	 * Handles the Letsdothis Button
@@ -79,7 +79,7 @@
 		<RangeSlider
 			name="range-slider"
 			min={3}
-			max={6}
+			max={7}
 			bind:value={trainingForm.throws}
 			ticked
 			accent="accent-primary-500 dark:accent-primary-500"
@@ -91,9 +91,10 @@
 		</RangeSlider>
         <div class="flex justify-between">
             <div class="text-left settingsSliderDiv3">3</div>
-            <div class="text-center">4</div>
+            <div class="text-right">4</div>
             <div class="text-right ">5</div>
-            <div class="text-center mr-1">6</div>
+            <div class="text-right">6</div>
+			<div class="text-right mr-0.5">∞</div>
         </div>
 	</div>
     <div>
