@@ -405,7 +405,7 @@
 {#if $game?.state === 'closed' && $game.turnIdx === index}
 	<div class="w-full grid grid-cols-3 gap-2">
 		<button
-			class="btn btn-lg rounded-lg {darts[i].x === 1
+			class="btn btn-lg rounded-lg h-[66%] {darts[i].x === 1
 				? 'variant-ghost-primary'
 				: 'variant-ghost border-token border-surface-400-500-token'}"
 			on:click={async () => {
@@ -416,7 +416,7 @@
 			Single
 		</button>
 		<button
-			class="btn btn-lg rounded-lg {darts[i].x === 2
+			class="btn btn-lg rounded-lg h-[66%] {darts[i].x === 2
 				? 'variant-ghost-primary'
 				: 'variant-ghost border-token border-surface-400-500-token'}"
 			on:click={async () => {
@@ -427,7 +427,7 @@
 			Double
 		</button>
 		<button
-			class="btn btn-lg rounded-lg {darts[i].x === 3
+			class="btn btn-lg rounded-lg h-[66%] {darts[i].x === 3
 				? 'variant-ghost-primary'
 				: 'variant-ghost border-token border-surface-400-500-token'}"
 			disabled={(darts[i].s || 0) > 20}
@@ -439,51 +439,82 @@
 			Triple
 		</button>
 	</div>
-	<div class="w-full grid grid-cols-6 gap-2">
-		{#each possibleScores as score}
+	<div class="w-full -mt-4">
+		<div class="w-full grid grid-cols-5 gap-2">
+			{#each possibleScores as score}
+				{#if score <= 19}
+					<button
+						class="btn btn-lg rounded-lg p-0 aspect-square
+							{darts[i].s === score
+							? 'variant-ghost-primary'
+							: 'variant-ghost border-token border-surface-400-500-token'}"
+						on:click={async () => {
+							darts[i].s = darts[i].s === score ? null : score;
+							await updatePlayer({ ...player, darts });
+						}}
+					>
+						{score}
+					</button>
+				{/if}
+			{/each}
+		</div>
+		<div class="w-full mt-2 grid grid grid-cols-10 gap-2">
 			<button
-				class="btn btn-lg rounded-lg p-0 aspect-square
-					{darts[i].s === score
+				class="btn btn-lg rounded-lg p-0 aspect-square col-span-2
+					{darts[i].s === 20
 					? 'variant-ghost-primary'
 					: 'variant-ghost border-token border-surface-400-500-token'}"
-				disabled={score === 25 && darts[i].x === 3}
+
 				on:click={async () => {
-					darts[i].s = darts[i].s === score ? null : score;
+					darts[i].s = darts[i].s === 20 ? null : 20;
 					await updatePlayer({ ...player, darts });
 				}}
 			>
-				{score}
+				20
 			</button>
-		{/each}
-		<button
-			class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square"
-			disabled={i === 0}
-			on:click={async () => {
-				darts[i] = { s: null, x: 1 };
-				await updatePlayer({ ...player, darts, dartIdx: --i });
-			}}
-		>
-			<ChevronLeftIcon />
-		</button>
-		<button
-			class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square"
-			disabled={darts[i].s === null}
-			on:click={async () => {
-				checkOuts();
-				if (allSet) {
-					await endTurn();
-				} else {
-					await updatePlayer({ ...player, dartIdx: ++i });
-				}
-			}}
-		>
-			{#if isLoading}
-				<ProgressRadial stroke={120} width="w-6" />
-			{:else if allSet}
-				<CheckIcon />
-			{:else}
-				<ChevronRightIcon />
-			{/if}
-		</button>
+			<button
+				class="btn btn-lg rounded-lg p-0 aspect-square col-span-2
+					{darts[i].s === 25
+					? 'variant-ghost-primary'
+					: 'variant-ghost border-token border-surface-400-500-token'}"
+				disabled={darts[i].x === 3}
+				on:click={async () => {
+					darts[i].s = darts[i].s === 25 ? null : 25;
+					await updatePlayer({ ...player, darts });
+				}}
+			>
+				25
+			</button>
+			<button
+				class="btn btn-lg rounded-lg variant-filled-primary p-0 col-span-3"
+				disabled={i === 0}
+				on:click={async () => {
+					darts[i] = { s: null, x: 1 };
+					await updatePlayer({ ...player, darts, dartIdx: --i });
+				}}
+			>
+				<ChevronLeftIcon />
+			</button>
+			<button
+				class="btn btn-lg rounded-lg variant-filled-primary p-0 col-span-3"
+				disabled={darts[i].s === null}
+				on:click={async () => {
+					checkOuts();
+					if (allSet) {
+						await endTurn();
+					} else {
+						await updatePlayer({ ...player, dartIdx: ++i });
+					}
+				}}
+			>
+				{#if isLoading}
+					<ProgressRadial stroke={120} width="w-6" />
+				{:else if allSet}
+					<CheckIcon />
+				{:else}
+					<ChevronRightIcon />
+				{/if}
+			</button>
+		</div>
 	</div>
 {/if}

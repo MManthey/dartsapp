@@ -27,6 +27,11 @@
 	let outResults;
 	let throwsTillFinish = throws;
 
+	//True, wenn 0, aber nicht via double bei double out
+	let notDoubleOut = false;
+
+	let throwCount = 0;
+
 	$: possibleOutClasses = possibleOutBools[currentThrowIndex] ? "" : currentThrowIndex >= throws ? "" : "line-through";
 	let scoreInputClass = "";
 	let endInfoClass = "hidden";
@@ -148,14 +153,25 @@
 	function confirmThrow() {
 		currentThrowIndex++;
 		const hitScore = (dartValues[currentThrowIndex] || 0) * dartMultipliers[currentThrowIndex];
-		const newRemaining = remaining < 0 ? remaining + (dartValues[currentThrowIndex - 1] * dartMultipliers[currentThrowIndex - 1]) : remaining;
+		let newRemaining = remaining < 0 ? remaining + (dartValues[currentThrowIndex - 1] * dartMultipliers[currentThrowIndex - 1]) : remaining;
+
+		if (remaining === 0 && outMode === 'double' && dartMultipliers[currentThrowIndex - 1] < 2) {
+			newRemaining = remaining + (dartValues[currentThrowIndex - 1] * dartMultipliers[currentThrowIndex - 1]);
+			notDoubleOut = true;
+		} else if (dartMultipliers[currentThrowIndex] >= 2) {
+			notDoubleOut = false;
+		}
+
 		if (newRemaining !== remaining) {
 			dartValues[currentThrowIndex - 1] = 0;
 		}
 		remaining = newRemaining;
 		let newOutResults;
 
-		throwsTillFinish--;
+		if (throwsTillFinish !== 7) {
+			throwsTillFinish--;
+		}
+		throwCount++;
 		//TODO ist das if richtig?
 		if (newRemaining === 0 || throwsTillFinish === 0) {
 			endPlay = true;
@@ -176,6 +192,7 @@
 		isLoading = false; // Ensure loading is reset
 		generateValidTargetScore(); // Generate new target score and out results
 		remaining = targetScore;
+		throwCount = 0;
 		updateOutResults(); // Update out results based on the new target score
 	}
 
@@ -206,8 +223,20 @@
 	</div>
 	<div class="flex flex-row justify-around mt-6">
 		<div class="flex flex-col items-center">
-			<h3 class="text-primary-800">Throws till finish:</h3>
-			<h1 class="h1 text-6xl">{throwsTillFinish}</h1>
+			<h3 class="text-primary-800">
+				{#if throwsTillFinish === 7}
+					Throws Count:
+				{:else}
+					Throws till finish:
+				{/if}
+			</h3>
+			<h1 class="h1 text-6xl">
+				{#if throwsTillFinish === 7}
+					{throwCount}
+				{:else}
+					{throwsTillFinish}
+				{/if}
+			</h1>
 		</div>
 		<div class="flex flex-col justify-center">
 			<div class="text-primary-800 text-center">
@@ -227,19 +256,19 @@
 {#if !endPlay}
 	<div class="w-full grid grid-cols-3 gap-2 mb-4">
 		<button
-			class="btn btn-lg rounded-lg {dartMultipliers[currentThrowIndex] === 1 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}"
+			class="btn btn-lg rounded-lg h-[66%] {dartMultipliers[currentThrowIndex] === 1 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}"
 			on:click={() => { dartMultipliers[currentThrowIndex] = 1; }}
 		>
 			Single
 		</button>
 		<button
-			class="btn btn-lg rounded-lg {dartMultipliers[currentThrowIndex] === 2 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}"
+			class="btn btn-lg rounded-lg h-[66%] {dartMultipliers[currentThrowIndex] === 2 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}"
 			on:click={() => { dartMultipliers[currentThrowIndex] = dartMultipliers[currentThrowIndex] === 2 ? 1 : 2; }}
 		>
 			Double
 		</button>
 		<button
-			class="btn btn-lg rounded-lg {dartMultipliers[currentThrowIndex] === 3 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}"
+			class="btn btn-lg rounded-lg h-[66%] {dartMultipliers[currentThrowIndex] === 3 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}"
 			disabled={dartValues[currentThrowIndex] === 25}
 			on:click={() => { dartMultipliers[currentThrowIndex] = dartMultipliers[currentThrowIndex] === 3 ? 1 : 3; }}
 		>
@@ -247,79 +276,113 @@
 		</button>
 	</div>
 
-	<div class="w-full grid grid-cols-6 gap-2">
-		{#each possibleScores as score}
+	<div class="w-full -mt-4">
+		<div class="w-full grid grid-cols-5 gap-2">
+			{#each possibleScores as score}
+				{#if score <= 19} 
+					<button
+						class="btn btn-lg rounded-lg p-0 aspect-square
+							{dartValues[currentThrowIndex] === score ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}"
+						on:click={() => { dartValues[currentThrowIndex] = dartValues[currentThrowIndex] === score ? null : score; }}
+					>
+						{score}
+					</button>
+				{/if}
+			{/each}
+		</div>
+		<div class="w-full mt-2 grid grid grid-cols-10 gap-2">
 			<button
-				class="btn btn-lg rounded-lg p-0 aspect-square
-					{dartValues[currentThrowIndex] === score ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}"
-				disabled={score === 25 && dartMultipliers[currentThrowIndex] === 3}
-				on:click={() => { dartValues[currentThrowIndex] = dartValues[currentThrowIndex] === score ? null : score; }}
+				class="btn btn-lg rounded-lg p-0 aspect-square col-span-2
+					{dartValues[currentThrowIndex] === 20 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}"
+				on:click={() => { dartValues[currentThrowIndex] = dartValues[currentThrowIndex] === 20 ? null : 20; }}
 			>
-				{score}
-				</button>
-		{/each}
-		<button
-			class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square"
-			disabled={currentThrowIndex === 0}
-			on:click={() => {
-				remaining += dartValues[currentThrowIndex - 1] * dartMultipliers[currentThrowIndex - 1];
-				dartValues[currentThrowIndex] = null;
-				dartMultipliers[currentThrowIndex] = 1;
-				possibleOutBools[currentThrowIndex] = true;
-				currentThrowIndex--;
-				throwsTillFinish++;
-				updateOutResults();
-				checkOuts();
-			}}
-		>
-			<ChevronLeftIcon />
-		</button>
-		<button
-			class="btn btn-lg rounded-lg variant-filled-primary p-0 aspect-square"
-			disabled={dartValues[currentThrowIndex] === null}
-			on:click={confirmThrow}
-		>
-			{#if isLoading}
-				<ProgressRadial stroke={120} width="w-6" />
-			{:else}
-				<ChevronRightIcon />
-			{/if}
-		</button>
+				20
+			</button>
+			<button
+				class="btn btn-lg rounded-lg p-0 aspect-square col-span-2
+					{dartValues[currentThrowIndex] === 25 ? 'variant-ghost-primary' : 'variant-ghost border-token border-surface-400-500-token'}"
+				disabled={dartMultipliers[currentThrowIndex] === 3}
+				on:click={() => { dartValues[currentThrowIndex] = dartValues[currentThrowIndex] === 25 ? null : 25; }}
+			>
+				25
+			</button>
+			<button
+				class="btn btn-lg rounded-lg variant-filled-primary p-0 col-span-3"
+				disabled={currentThrowIndex === 0}
+				on:click={() => {
+					remaining += dartValues[currentThrowIndex - 1] * dartMultipliers[currentThrowIndex - 1];
+					dartValues[currentThrowIndex] = null;
+					dartMultipliers[currentThrowIndex] = 1;
+					possibleOutBools[currentThrowIndex] = true;
+					currentThrowIndex--;
+					throwsTillFinish++;
+					throwCount--;
+					updateOutResults();
+					checkOuts();
+				}}
+			>
+				<ChevronLeftIcon />
+			</button>
+			<button
+				class="btn btn-lg rounded-lg variant-filled-primary p-0 col-span-3"
+				disabled={dartValues[currentThrowIndex] === null}
+				on:click={() => {
+					confirmThrow();
+					if (dartMultipliers[currentThrowIndex] !== 2 && dartMultipliers[currentThrowIndex] !== 3) {
+						dartMultipliers[currentThrowIndex] = 1;
+					}
+				}}
+			>
+				{#if isLoading}
+					<ProgressRadial stroke={120} width="w-6" />
+				{:else}
+					<ChevronRightIcon />
+				{/if}
+			</button>
+		</div>
 	</div>
 {:else}
 	<!-- wird angezeigt, wenn Spiel vorbei -->
 	<div class="ml-10 mr-10 textDiv flex flex-col items-center card p-2 text-white text-xl">
 		Game Over.
-		{#if throwsTillFinish > 0}
-			 Good job!
-			<!-- geschafft mit weniger versuchen -->
-			{#if throws > 3}
-				<!-- mit mehr als 3 würfen -->
-				 Maybe try giving yourself less throws?
-				<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
-					<Button text="Settings" onClick={() => { goto('/training/checkout/settings'); $training = null;}}/>
-				</div>
-			{:else}
-				<!-- mit nur 3 würfen -->
-				 Want to go again?
-				<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
-					<Button text="Again!" onClick={resetGame}/>
-				</div>
-			{/if}
+		{#if throwsTillFinish === 7}
+			Nice!
+			Want to go again?
+			<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
+				<Button text="Again!" onClick={resetGame}/>
+			</div>
 		{:else}
-			{#if remaining > 0}
-				<!-- nicht geschafft-->
-				 Want to try again to see if you can do it?
-				<div class="w-1/2 m-4 mr-6 ml-6 pt-2">
-					<Button text="Try again!" onClick={resetGame}/>
-				</div>
-			{:else}
+			{#if throwsTillFinish > 0}
 				Good job!
-				<!-- geschafft, gerade so -->
-				 Want to go again?
-				<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
-					<Button text="Again!" onClick={resetGame}/>
-				</div>
+				<!-- geschafft mit weniger versuchen -->
+				{#if throws > 3}
+					<!-- mit mehr als 3 würfen -->
+					Maybe try giving yourself less throws?
+					<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
+						<Button text="Settings" onClick={() => { goto('/training/checkout/settings'); $training = null;}}/>
+					</div>
+				{:else}
+					<!-- mit nur 3 würfen -->
+					Want to go again?
+					<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
+						<Button text="Again!" onClick={resetGame}/>
+					</div>
+				{/if}
+			{:else}
+				{#if remaining > 0 || remaining < 0 || (outMode === 'double' && notDoubleOut)}
+					<!-- nicht geschafft-->
+					Want to try again to see if you can do it?
+					<div class="w-1/2 m-4 mr-6 ml-6 pt-2">
+						<Button text="Try again!" onClick={resetGame}/>
+					</div>
+				{:else}
+					Good job!
+					<!-- geschafft, gerade so -->
+					Want to go again?
+					<div class="w-1/2 m-4 mr-8 ml-8 pt-2">
+						<Button text="Again!" onClick={resetGame}/>
+					</div>
+				{/if}
 			{/if}
 		{/if}
 	</div>
